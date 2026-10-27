@@ -1,7 +1,8 @@
 node_modules
 build
-.react-router
+.svelte-kit
 .wrangler
+static
 worker-configuration.d.ts
 package-lock.json
 private

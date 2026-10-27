@@ -11,13 +11,13 @@ CLAUDE.md
 # Build and tooling
 node_modules/
 build/
-dist/
-.react-router/
+.svelte-kit/
 .wrangler/
 coverage/
 test-results/
 playwright-report/
 *.log
 .DS_Store
+Thumbs.db
 worker-configuration.d.ts
-*.tsbuildinfo
+vite.config.ts.timestamp-*
