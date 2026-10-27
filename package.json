@@ -14,9 +14,11 @@
     "format": "prettier --check .",
     "format:write": "prettier --write .",
     "test": "vitest run --passWithNoTests",
-    "check": "npm run lint && npm run typecheck && npm run format && npm test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm run format && npm test && npm run build",
+    "migrate": "node --env-file-if-exists=.env src/lib/server/db/migrate-cli.ts"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.12",
     "@eslint/js": "^10.0.1",
     "@sveltejs/adapter-cloudflare": "^8.0.0",
     "@sveltejs/kit": "^3.0.0",
@@ -42,6 +44,7 @@
   },
   "dependencies": {
     "@fontsource/geist": "^5.3.0",
-    "@fontsource/geist-mono": "^5.3.0"
+    "@fontsource/geist-mono": "^5.3.0",
+    "@neondatabase/serverless": "^1.2.0"
   }
 }
