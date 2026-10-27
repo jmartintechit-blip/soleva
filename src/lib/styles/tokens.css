@@ -1,0 +1,126 @@
+/* Soleva · Horizonte v2 — generado desde tokens.json. No editar a mano: regenerar. */
+
+:root, [data-theme="amanecer"] {
+  --bg: #0d0b09;
+  --surface: #17140f;
+  --surface-raised: #201b15;
+  --line: #2e2820;
+  --line-strong: #4a4136;
+  --hairline: rgba(255,236,210,0.08);
+  --hairline-strong: rgba(255,236,210,0.14);
+  --ink: #f5efe6;
+  --ink-muted: #a39a8c;
+  --ink-subtle: #8c8476;
+  --accent: #ffb547;
+  --accent-strong: #ff8a3d;
+  --accent-soft: rgba(255,181,71,0.10);
+  --accent-line: rgba(255,181,71,0.30);
+  --accent-glow: rgba(255,181,71,0.16);
+  --on-accent: #1a1208;
+  --negative: #ee6a5e;
+  --negative-soft: rgba(238,106,94,0.12);
+  --shadow-device: 0 40px 120px rgba(255,138,61,0.08);
+  --shadow-thumb: 0 0 0 7px rgba(255,181,71,0.14), 0 4px 14px rgba(255,138,61,0.45);
+  color-scheme: dark;
+}
+
+[data-theme="crepusculo"] {
+  --bg: #0c0a10;
+  --surface: #16131d;
+  --surface-raised: #1f1b28;
+  --line: #2a2535;
+  --line-strong: #443d52;
+  --hairline: rgba(232,224,255,0.085);
+  --hairline-strong: rgba(232,224,255,0.15);
+  --ink: #f1eef7;
+  --ink-muted: #a49cb3;
+  --ink-subtle: #8d869b;
+  --accent: #b9a3ff;
+  --accent-strong: #8c6cf0;
+  --accent-soft: rgba(185,163,255,0.10);
+  --accent-line: rgba(185,163,255,0.30);
+  --accent-glow: rgba(185,163,255,0.18);
+  --on-accent: #140f22;
+  --negative: #ee6a5e;
+  --negative-soft: rgba(238,106,94,0.12);
+  --shadow-device: 0 40px 120px rgba(140,108,240,0.10);
+  --shadow-thumb: 0 0 0 7px rgba(185,163,255,0.14), 0 4px 14px rgba(140,108,240,0.45);
+  color-scheme: dark;
+}
+
+[data-theme="rose"] {
+  --bg: #0f0b0b;
+  --surface: #1a1414;
+  --surface-raised: #241b1b;
+  --line: #33282a;
+  --line-strong: #4d3d3d;
+  --hairline: rgba(255,228,220,0.085);
+  --hairline-strong: rgba(255,228,220,0.15);
+  --ink: #f7eeea;
+  --ink-muted: #ae9d9a;
+  --ink-subtle: #94847f;
+  --accent: #f2b0a0;
+  --accent-strong: #d9826f;
+  --accent-soft: rgba(242,176,160,0.10);
+  --accent-line: rgba(242,176,160,0.30);
+  --accent-glow: rgba(242,176,160,0.17);
+  --on-accent: #22120e;
+  --negative: #e85a4f;
+  --negative-soft: rgba(232,90,79,0.12);
+  --shadow-device: 0 40px 120px rgba(217,130,111,0.09);
+  --shadow-thumb: 0 0 0 7px rgba(242,176,160,0.14), 0 4px 14px rgba(217,130,111,0.45);
+  color-scheme: dark;
+}
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 22px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+  --duration-fast: 250ms;
+  --duration-base: 450ms;
+  --duration-enter: 800ms;
+  --duration-count: 1500ms;
+  --duration-draw: 1600ms;
+  --duration-ambient: 2400ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.hero-number { font-family: var(--font-sans); font-size: 48px; line-height: 1.05; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+
+.number-lg { font-family: var(--font-sans); font-size: 32px; line-height: 1.1; font-weight: 600; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+
+.number-md { font-family: var(--font-sans); font-size: 17px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+
+.display { font-family: var(--font-sans); font-size: 64px; line-height: 1; font-weight: 600; letter-spacing: -0.04em; }
+
+.title-lg { font-family: var(--font-sans); font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -0.025em; }
+
+.title { font-family: var(--font-sans); font-size: 17px; line-height: 1.3; font-weight: 500; }
+
+.body { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; font-weight: 400; }
+
+.body-strong { font-family: var(--font-sans); font-size: 15px; line-height: 1.5; font-weight: 500; }
+
+.body-sm { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; font-weight: 400; }
+
+.caption { font-family: var(--font-sans); font-size: 11px; line-height: 1.4; font-weight: 400; }
+
+.label { font-family: var(--font-mono); font-size: 12px; line-height: 1.3; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; }
+
+.data { font-family: var(--font-mono); font-size: 11px; line-height: 1.3; font-weight: 400; }
+
+/* Fuentes: https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap */

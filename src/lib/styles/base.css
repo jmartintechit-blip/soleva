@@ -1,0 +1,8 @@
+/* Mínimo global que Horizonte no trae: el fondo cubre también el rebote del scroll. */
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+}

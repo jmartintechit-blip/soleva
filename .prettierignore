@@ -8,3 +8,5 @@ package-lock.json
 private
 CLAUDE.md
 .claude
+src/lib/styles/tokens.css
+src/lib/styles/componentes.css
