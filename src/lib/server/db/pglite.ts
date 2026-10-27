@@ -9,8 +9,7 @@ async function run<T extends Row>(conn: PGlite | Transaction, sql: string, param
 }
 
 // In-memory Postgres for tests; never imported by the deployed worker.
-export function createPgliteDb(): Db {
-  const pglite = new PGlite();
+export function createPgliteDb(pglite = new PGlite()): Db {
   return {
     query: <T extends Row>(sql: string, params?: unknown[]) => run<T>(pglite, sql, params),
     transaction: (fn) =>
@@ -22,5 +21,22 @@ export function createPgliteDb(): Db {
         }),
       ),
     close: () => pglite.close(),
+  };
+}
+
+// pg-style Pool over PGlite so Better Auth (Kysely's PostgresDialect) can run in tests.
+export function pgliteAsPool(pglite: PGlite) {
+  const query = async (sql: string, params?: unknown[]) => {
+    const r = await pglite.query(sql, params);
+    return {
+      rows: r.rows,
+      rowCount: r.affectedRows ?? r.rows.length,
+      command: sql.trim().split(/\s/)[0]!.toUpperCase(),
+    };
+  };
+  return {
+    connect: async () => ({ query, release: () => {} }),
+    query,
+    end: async () => {},
   };
 }
