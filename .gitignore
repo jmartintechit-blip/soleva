@@ -1,0 +1,21 @@
+# Private: never commit
+private/
+CLAUDE.md
+.claude/
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+
+# Build and tooling
+node_modules/
+build/
+dist/
+.react-router/
+.wrangler/
+coverage/
+test-results/
+playwright-report/
+*.log
+.DS_Store

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Block private files and obvious secrets from ever reaching the index.
+blocked=$(git diff --cached --name-only | grep -E '^(private/|CLAUDE\.md$|\.claude/|\.env($|\.)|\.dev\.vars)' | grep -v '^\.env\.example$')
+if [ -n "$blocked" ]; then
+  echo "pre-commit: private files staged:" >&2
+  echo "$blocked" >&2
+  exit 1
+fi
+if git diff --cached -U0 | grep -E '^\+' | grep -Eq '(re_[A-Za-z0-9_]{20,}|npg_[A-Za-z0-9]{10,}|postgres(ql)?://[^ ]*:[^ @]+@|BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{30,})'; then
+  echo "pre-commit: possible secret in staged changes" >&2
+  exit 1
+fi
