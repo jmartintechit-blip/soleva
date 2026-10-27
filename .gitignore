@@ -19,3 +19,5 @@ test-results/
 playwright-report/
 *.log
 .DS_Store
+worker-configuration.d.ts
+*.tsbuildinfo
