@@ -6,6 +6,19 @@ import { isAuthPath, svelteKitHandler } from 'better-auth/svelte-kit';
 import { createAuth, type Auth } from '#lib/server/auth.ts';
 import { sendOtpEmail } from '#lib/server/email.ts';
 
+// CSP comes from the Kit config (vite.config.ts); these complete it on every dynamic response.
+const SECURITY_HEADERS = {
+  'strict-transport-security': 'max-age=63072000; includeSubDomains',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+};
+
+function secure(res: Response): Response {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
+  return res;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
   if (building) return resolve(event);
   // Auth (and its database pool) is built only when a route asks for it, so public pages stay cheap.
@@ -25,9 +38,11 @@ export const handle: Handle = async ({ event, resolve }) => {
     }));
   try {
     if (isAuthPath(event.url.toString(), { basePath: '/api/auth' })) {
-      return await svelteKitHandler({ auth: event.locals.auth(), event, resolve, building });
+      return secure(
+        await svelteKitHandler({ auth: event.locals.auth(), event, resolve, building }),
+      );
     }
-    return await resolve(event);
+    return secure(await resolve(event));
   } finally {
     if (pool) waitUntil(pool.end());
   }

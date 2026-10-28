@@ -11,6 +11,23 @@ export default defineConfig({
           filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
       },
       adapter: adapter(),
+      // Kit adds a nonce per response for its own inline scripts.
+      // Inline style attributes (app.html, Svelte style:) need 'unsafe-inline' for styles.
+      csp: {
+        mode: 'auto',
+        directives: {
+          'default-src': ['self'],
+          'script-src': ['self'],
+          'style-src': ['self', 'unsafe-inline'],
+          'img-src': ['self', 'data:'],
+          'font-src': ['self'],
+          'connect-src': ['self'],
+          'form-action': ['self'],
+          'frame-ancestors': ['none'],
+          'base-uri': ['self'],
+          'object-src': ['none'],
+        },
+      },
     }),
   ],
   test: {
