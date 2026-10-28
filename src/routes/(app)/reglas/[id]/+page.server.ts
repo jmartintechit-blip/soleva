@@ -16,11 +16,13 @@ export const load: PageServerLoad = async (event) => {
     (a) => !a.archived || a.id === rule?.fromAccountId || a.id === rule?.toAccountId,
   );
   if (!rule && !accounts.length) redirect(303, '/cuentas/nueva');
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
   return {
     rule,
     accounts: accounts.map(({ id, name, kind }) => ({ id, name, kind })),
-    // Current month in Spain, the default start.
-    month: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' }).slice(0, 7),
+    // Today in Spain: the default day and start month.
+    month: today.slice(0, 7),
+    today: Number(today.slice(8, 10)),
   };
 };
 

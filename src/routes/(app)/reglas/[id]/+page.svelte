@@ -36,6 +36,22 @@
   let from = $state(v.from ?? r?.fromAccountId ?? first(CASH));
   let to = $state(v.to ?? r?.toAccountId ?? first(FOLLOWS_SCENARIO));
   let touched = $state(!!r || !!v.type);
+  // Folded under «Más opciones»: today, from this month, no end.
+  // svelte-ignore state_referenced_locally
+  let day = $state(v.day ?? String(r?.day ?? data.today));
+  // svelte-ignore state_referenced_locally
+  let startMonth = $state(v.startMonth ?? r?.startMonth ?? data.month);
+  let endMonth = $state(v.endMonth ?? r?.endMonth ?? '');
+  const once = $derived(frequency === 'una_vez');
+  const monthName = (m: string) =>
+    new Date(`${m}-15`).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+  const when = $derived(
+    !/^\d{4}-\d{2}$/.test(startMonth)
+      ? ''
+      : once
+        ? monthName(startMonth)
+        : `Día ${day} · desde ${monthName(startMonth)}${endMonth ? ` · hasta ${monthName(endMonth)}` : ' · sin fin'}`,
+  );
 
   function pick(t: Type) {
     type = t;
@@ -49,7 +65,6 @@
   const cents = $derived(parseEuros(amount) ?? 0);
   const PER_MONTH: Record<Frequency, number> = { mensual: 1, trimestral: 3, anual: 12, una_vez: 0 };
   const monthly = $derived(PER_MONTH[frequency] ? cents / PER_MONTH[frequency] : 0);
-  const once = $derived(frequency === 'una_vez');
   const toInvested = $derived(
     FOLLOWS_SCENARIO.includes(data.accounts.find((a) => a.id === to)?.kind ?? ''),
   );
@@ -181,55 +196,61 @@
       </div>
     </div>
 
-    <div class="f3 when">
-      {#if !once}
+    <details class="f3 more" open={!!(errors.day || errors.startMonth || errors.endMonth)}>
+      <summary>
+        <span>Más opciones</span>
+        <span class="more__now">{when}</span>
+      </summary>
+      <div class="when">
+        {#if !once}
+          <label class="sv-field">
+            <span class="sv-field__label">Día</span>
+            <span class="sv-field__box">
+              <input
+                class="sv-field__input"
+                name="day"
+                type="number"
+                min="1"
+                max="31"
+                bind:value={day}
+                aria-invalid={!!errors.day}
+              />
+            </span>
+            {@render error('day')}
+          </label>
+        {:else}
+          <input type="hidden" name="day" value={day} />
+        {/if}
         <label class="sv-field">
-          <span class="sv-field__label">Día</span>
+          <span class="sv-field__label">{once ? 'Cuándo' : 'Desde'}</span>
           <span class="sv-field__box">
             <input
               class="sv-field__input"
-              name="day"
-              type="number"
-              min="1"
-              max="31"
-              value={v.day ?? r?.day ?? 1}
-              aria-invalid={!!errors.day}
-            />
-          </span>
-          {@render error('day')}
-        </label>
-      {:else}
-        <input type="hidden" name="day" value="1" />
-      {/if}
-      <label class="sv-field">
-        <span class="sv-field__label">{once ? 'Cuándo' : 'Desde'}</span>
-        <span class="sv-field__box">
-          <input
-            class="sv-field__input"
-            name="startMonth"
-            type="month"
-            value={v.startMonth ?? r?.startMonth ?? data.month}
-            aria-invalid={!!errors.startMonth}
-          />
-        </span>
-        {@render error('startMonth')}
-      </label>
-      {#if !once}
-        <label class="sv-field">
-          <span class="sv-field__label">Hasta <span class="sv-subtle">(opcional)</span></span>
-          <span class="sv-field__box">
-            <input
-              class="sv-field__input"
-              name="endMonth"
+              name="startMonth"
               type="month"
-              value={v.endMonth ?? r?.endMonth ?? ''}
-              aria-invalid={!!errors.endMonth}
+              bind:value={startMonth}
+              aria-invalid={!!errors.startMonth}
             />
           </span>
-          {@render error('endMonth')}
+          {@render error('startMonth')}
         </label>
-      {/if}
-    </div>
+        {#if !once}
+          <label class="sv-field">
+            <span class="sv-field__label">Hasta <span class="sv-subtle">(opcional)</span></span>
+            <span class="sv-field__box">
+              <input
+                class="sv-field__input"
+                name="endMonth"
+                type="month"
+                bind:value={endMonth}
+                aria-invalid={!!errors.endMonth}
+              />
+            </span>
+            {@render error('endMonth')}
+          </label>
+        {/if}
+      </div>
+    </details>
 
     <div class="flow f3">
       {#if type !== 'entra'}
@@ -462,6 +483,32 @@
     background: var(--ink);
     color: var(--bg);
     font-weight: 600;
+  }
+  .more summary {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 44px;
+    align-items: center;
+    font-size: 14px;
+    color: var(--ink-muted);
+    cursor: pointer;
+    list-style: none;
+    white-space: nowrap;
+  }
+  .more summary::-webkit-details-marker {
+    display: none;
+  }
+  .more summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .more__now {
+    color: var(--ink);
+    text-align: right;
+  }
+  .more[open] .more__now {
+    display: none;
   }
   .when {
     display: grid;
