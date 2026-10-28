@@ -80,6 +80,12 @@
     flex-direction: column;
     gap: var(--space-7);
   }
+  /* Wide enough for the glow's 60px overhang: clipping it at the column would show a hard edge. */
+  @media (min-width: 540px) {
+    main {
+      overflow: visible;
+    }
+  }
   form {
     position: relative;
     display: flex;
