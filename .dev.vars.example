@@ -1,0 +1,5 @@
+# Copy to .dev.vars and fill in. Never commit the real file.
+# DATABASE_URL: connection string of the Neon dev branch.
+DATABASE_URL=
+BETTER_AUTH_SECRET=
+RESEND_API_KEY=

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Block private files and obvious secrets from ever reaching the index.
-blocked=$(git diff --cached --name-only | grep -E '^(private/|CLAUDE\.md$|\.claude/|\.env($|\.)|\.dev\.vars)' | grep -v '^\.env\.example$')
+blocked=$(git diff --cached --name-only | grep -E '^(private/|CLAUDE\.md$|\.claude/|\.env($|\.)|\.dev\.vars)' | grep -vE '^\.(env|dev\.vars)\.example$')
 if [ -n "$blocked" ]; then
   echo "pre-commit: private files staged:" >&2
   echo "$blocked" >&2
