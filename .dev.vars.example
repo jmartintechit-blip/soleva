@@ -3,3 +3,5 @@
 DATABASE_URL=
 BETTER_AUTH_SECRET=
 RESEND_API_KEY=
+# ALLOWED_EMAILS: comma-separated emails that may sign in (empty = nobody).
+ALLOWED_EMAILS=

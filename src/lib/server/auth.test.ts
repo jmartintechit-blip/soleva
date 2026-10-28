@@ -110,3 +110,32 @@ describe('postAuth (form actions)', () => {
     expect(session?.user.email).toBe('ana@example.com');
   });
 });
+
+describe('closed registration', () => {
+  beforeEach(() => {
+    auth = createAuth({
+      pool: pgliteAsPool(pglite),
+      secret: 'test-secret-'.repeat(4),
+      baseURL,
+      sendOtp: async (email, otp) => void sent.push({ email, otp }),
+      allowedEmails: ['ana@example.com'],
+    });
+  });
+
+  it('answers the same but sends nothing to other emails, and creates no user', async () => {
+    expect((await sendCode('eve@example.com')).status).toBe(200);
+    expect(sent).toHaveLength(0);
+    // Even with a valid code (minted server-side) the account is not created.
+    const otp = await auth.api.createVerificationOTP({
+      body: { email: 'eve@example.com', type: 'sign-in' },
+    });
+    expect((await signIn('eve@example.com', otp)).ok).toBe(false);
+    const { rows } = await pglite.query('select 1 from "user"');
+    expect(rows).toHaveLength(0);
+  });
+
+  it('lets the allowed email in, whatever its case', async () => {
+    await sendCode('Ana@Example.com');
+    expect((await signIn('ana@example.com', sent[0]!.otp)).status).toBe(200);
+  });
+});

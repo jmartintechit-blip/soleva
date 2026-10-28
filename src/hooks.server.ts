@@ -12,6 +12,8 @@ const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'strict-origin-when-cross-origin',
   'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+  // Not indexed until the public beta.
+  'x-robots-tag': 'noindex, nofollow',
 };
 
 function secure(res: Response): Response {
@@ -30,6 +32,11 @@ export const handle: Handle = async ({ event, resolve }) => {
       pool: (pool = new Pool({ connectionString: env.DATABASE_URL, max: 1 })),
       secret: env.BETTER_AUTH_SECRET,
       baseURL: event.url.origin,
+      // Unset or empty means nobody can sign in: closed until the beta opens.
+      allowedEmails: (env.ALLOWED_EMAILS ?? '')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
       sendOtp: async (email, otp) => {
         if (env.RESEND_API_KEY) return sendOtpEmail(env.RESEND_API_KEY, email, otp);
         if (dev) return console.log(`[dev] código para ${email}: ${otp}`);

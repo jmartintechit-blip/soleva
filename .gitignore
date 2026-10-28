@@ -20,5 +20,6 @@ playwright-report/
 *.log
 .DS_Store
 Thumbs.db
+Claude outputs/
 worker-configuration.d.ts
 vite.config.ts.timestamp-*

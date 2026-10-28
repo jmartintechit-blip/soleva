@@ -8,10 +8,13 @@ export interface AuthConfig {
   secret: string;
   baseURL: string;
   sendOtp: (email: string, otp: string) => Promise<void>;
+  // Closed registration: only these emails get a code or an account. Undefined = open.
+  allowedEmails?: string[];
 }
 
 // Sign-in is only by one-time code: no passwords to hash (Workers Free has 10 ms of CPU) or leak.
-export function createAuth({ pool, secret, baseURL, sendOtp }: AuthConfig) {
+export function createAuth({ pool, secret, baseURL, sendOtp, allowedEmails }: AuthConfig) {
+  const allowed = (email: string) => !allowedEmails || allowedEmails.includes(email.toLowerCase());
   return betterAuth({
     database: pool as never,
     secret,
@@ -26,13 +29,19 @@ export function createAuth({ pool, secret, baseURL, sendOtp }: AuthConfig) {
         '/sign-in/email-otp': { window: 600, max: 10 },
       },
     },
+    databaseHooks: {
+      user: { create: { before: async (user) => allowed(user.email) } },
+    },
     plugins: [
       emailOTP({
         otpLength: 6,
         expiresIn: 600,
         allowedAttempts: 3,
         storeOTP: 'hashed',
-        sendVerificationOTP: ({ email, otp }) => sendOtp(email, otp),
+        // Same answer for any email, so the form does not reveal who is allowed.
+        sendVerificationOTP: async ({ email, otp }) => {
+          if (allowed(email)) await sendOtp(email, otp);
+        },
       }),
     ],
   });
