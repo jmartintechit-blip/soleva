@@ -17,7 +17,7 @@ describe('usage', () => {
   it('compares each metric with its free limit', () => {
     const lines = assess({
       workerRequestsToday: 70_000,
-      workerCpuP99Ms: 9.5,
+      workerCpuP50Ms: 9.5,
       neonComputeHours: 12,
     });
     expect(lines.map((l) => [l.pct, l.level])).toEqual([
@@ -32,7 +32,7 @@ describe('usage', () => {
     expect(await fetchNeonComputeHours('k', 'p')).toBe(2);
   });
 
-  it('reads Worker requests and CPU p99 from microseconds, counting from 00:00 UTC', async () => {
+  it('reads Worker requests and median CPU from microseconds, counting from 00:00 UTC', async () => {
     let sent: { variables: { since: string } } | undefined;
     vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
       sent = JSON.parse(init.body as string);
@@ -42,7 +42,7 @@ describe('usage', () => {
             accounts: [
               {
                 workersInvocationsAdaptive: [
-                  { sum: { requests: 42 }, quantiles: { cpuTimeP99: 3500 } },
+                  { sum: { requests: 42 }, quantiles: { cpuTimeP50: 3500 } },
                 ],
               },
             ],
@@ -51,7 +51,7 @@ describe('usage', () => {
       });
     });
     const u = await fetchWorkerUsage('t', 'a', 'soleva', new Date('2026-10-28T23:30:00+01:00'));
-    expect(u).toEqual({ requests: 42, cpuP99Ms: 3.5 });
+    expect(u).toEqual({ requests: 42, cpuP50Ms: 3.5 });
     expect(sent?.variables.since).toBe('2026-10-28T00:00:00.000Z');
   });
 
@@ -59,7 +59,7 @@ describe('usage', () => {
     vi.stubGlobal('fetch', async () =>
       Response.json({ data: { viewer: { accounts: [{ workersInvocationsAdaptive: [] }] } } }),
     );
-    expect(await fetchWorkerUsage('t', 'a', 's')).toEqual({ requests: 0, cpuP99Ms: 0 });
+    expect(await fetchWorkerUsage('t', 'a', 's')).toEqual({ requests: 0, cpuP50Ms: 0 });
     vi.stubGlobal('fetch', async () => Response.json({ errors: [{ message: 'not authorized' }] }));
     await expect(fetchWorkerUsage('t', 'a', 's')).rejects.toThrow('not authorized');
   });

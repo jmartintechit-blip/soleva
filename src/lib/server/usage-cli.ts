@@ -19,7 +19,7 @@ const [neonComputeHours, worker] = await Promise.all([
 
 const lines = assess({
   workerRequestsToday: worker.requests,
-  workerCpuP99Ms: worker.cpuP99Ms,
+  workerCpuP50Ms: worker.cpuP50Ms,
   neonComputeHours,
 });
 for (const l of lines) {

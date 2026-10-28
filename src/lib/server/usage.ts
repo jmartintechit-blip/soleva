@@ -7,7 +7,7 @@ export const LIMITS = {
 
 export type Usage = {
   workerRequestsToday: number;
-  workerCpuP99Ms: number;
+  workerCpuP50Ms: number;
   neonComputeHours: number;
 };
 
@@ -22,7 +22,7 @@ export function levelFor(pct: number): Level {
 export function assess(u: Usage): Line[] {
   const rows: [string, number, number][] = [
     ['Peticiones del Worker hoy', u.workerRequestsToday, LIMITS.workerRequestsPerDay],
-    ['CPU p99 por petición (ms)', u.workerCpuP99Ms, LIMITS.workerCpuMsPerRequest],
+    ['CPU mediana por petición (ms)', u.workerCpuP50Ms, LIMITS.workerCpuMsPerRequest],
     ['CU-horas de Neon este mes', u.neonComputeHours, LIMITS.neonComputeHoursPerMonth],
   ];
   return rows.map(([name, used, limit]) => {
@@ -45,18 +45,20 @@ const WORKER_QUERY = `query ($accountTag: string!, $script: string!, $since: Tim
   viewer { accounts(filter: { accountTag: $accountTag }) {
     workersInvocationsAdaptive(limit: 1, filter: { scriptName: $script, datetime_geq: $since }) {
       sum { requests }
-      quantiles { cpuTimeP99 }
+      quantiles { cpuTimeP50 }
     }
   } }
 }`;
 
-// Requests since 00:00 UTC, when the Workers daily quota resets. cpuTimeP99 comes in microseconds.
+// Requests since 00:00 UTC, when the Workers daily quota resets. cpuTime comes in microseconds
+// (wallTime p50 ≈ 300000 for a Neon query confirms it). Median, not p99: with little traffic the
+// p99 is just cold starts (35 ms on the first request after a deploy, never killed).
 export async function fetchWorkerUsage(
   apiToken: string,
   accountId: string,
   script: string,
   now = new Date(),
-): Promise<{ requests: number; cpuP99Ms: number }> {
+): Promise<{ requests: number; cpuP50Ms: number }> {
   const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
     method: 'POST',
@@ -75,8 +77,8 @@ export async function fetchWorkerUsage(
   const group = body.data?.viewer.accounts[0]?.workersInvocationsAdaptive[0];
   return {
     requests: group?.sum.requests ?? 0,
-    cpuP99Ms: (group?.quantiles.cpuTimeP99 ?? 0) / 1000,
+    cpuP50Ms: (group?.quantiles.cpuTimeP50 ?? 0) / 1000,
   };
 }
 
-type WorkerGroup = { sum: { requests: number }; quantiles: { cpuTimeP99: number } };
+type WorkerGroup = { sum: { requests: number }; quantiles: { cpuTimeP50: number } };
