@@ -54,7 +54,7 @@ npm run dev
 
 ## Status
 
-Under construction: block 0 of 7 of MVP v0. See [CHANGELOG.md](CHANGELOG.md).
+Under construction: block 0 of 7 of MVP v0 done (v0.1.0), deployed with sign-up closed. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Roadmap
 

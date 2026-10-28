@@ -4,6 +4,8 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.1.0] - 2026-10-28
+
 ### Añadido
 
 - Esqueleto con SvelteKit 3 y Svelte 5 para Cloudflare Workers.
@@ -17,3 +19,6 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 - Registro cerrado a una lista de emails (`ALLOWED_EMAILS`) y `noindex` en toda la app hasta la beta.
 - Prueba E2E de entrada con Playwright, en CI sobre una rama temporal de Neon copiada de dev.
 - Primer despliegue en Cloudflare Workers.
+
+[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.1.0

@@ -54,7 +54,7 @@ npm run dev
 
 ## Estado
 
-En construcción: bloque 0 de 7 del MVP v0. Ver [CHANGELOG.md](CHANGELOG.md).
+En construcción: bloque 0 de 7 del MVP v0 cerrado (v0.1.0), desplegado con el registro cerrado. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Hoja de ruta
 
