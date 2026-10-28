@@ -15,6 +15,8 @@ You note once how your money comes in and goes out (salary, contributions, fixed
 
 > Soleva does not move money, does not connect to your bank and does not recommend products. Every projection is an estimate, not advice.
 
+<p align="center"><img src="docs/entrar.png" width="280" alt="Soleva sign-in screen on mobile"></p>
+
 ## Features
 
 Today (block 0, skeleton):
@@ -27,7 +29,7 @@ Coming (MVP v0): accounts, income, expense and transfer rules, a one-minute mont
 
 ## Stack
 
-TypeScript · SvelteKit 3 + Svelte 5 · Cloudflare Workers · Neon Postgres (Frankfurt) with hand-written SQL · Better Auth · Resend · Zod · Vitest + PGlite.
+TypeScript · SvelteKit 3 + Svelte 5 · Cloudflare Workers · Neon Postgres (Frankfurt) with hand-written SQL · Better Auth · Resend · Zod · Vitest + PGlite · Playwright.
 
 Details in [ARCHITECTURE.md](ARCHITECTURE.md) (Spanish).
 
@@ -44,9 +46,11 @@ npm run dev
 ```
 
 - `BETTER_AUTH_SECRET`: a random string of 32 characters or more (`openssl rand -base64 32`).
+- `ALLOWED_EMAILS`: comma-separated emails that may sign in (empty = nobody; sign-up is closed until the beta).
 - Without `RESEND_API_KEY`, the sign-in code is printed in the `npm run dev` console.
 - `npm test` needs no keys: it uses in-memory Postgres (PGlite).
 - `npm run check` runs lint, types, format, tests and build, like CI.
+- `npm run e2e` tests sign-in with Playwright against the `.env` branch (with `delivered@resend.dev` in `ALLOWED_EMAILS`); CI runs it on a throwaway Neon branch copied from dev.
 
 ## Status
 

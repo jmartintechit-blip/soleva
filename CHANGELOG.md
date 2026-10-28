@@ -14,3 +14,6 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 - Política de seguridad de contenidos (CSP) con nonce, HSTS y otras cabeceras de seguridad.
 - `npm run usage`: consumo frente a los planes gratuitos de Workers y Neon, con aviso al 70 % y al 90 %.
 - CI en GitHub Actions: lint, tipos, formato, tests y build en cada push.
+- Registro cerrado a una lista de emails (`ALLOWED_EMAILS`) y `noindex` en toda la app hasta la beta.
+- Prueba E2E de entrada con Playwright, en CI sobre una rama temporal de Neon copiada de dev.
+- Primer despliegue en Cloudflare Workers.

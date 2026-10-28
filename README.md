@@ -15,6 +15,8 @@ Apuntas una vez cómo entra y sale tu dinero (nómina, aportaciones, gastos fijo
 
 > Soleva no mueve dinero, no se conecta a tu banco y no recomienda productos. Toda proyección es una estimación, no asesoramiento.
 
+<p align="center"><img src="docs/entrar.png" width="280" alt="Pantalla de entrada de Soleva en móvil"></p>
+
 ## Funcionalidades
 
 Hoy (bloque 0, esqueleto):
@@ -27,7 +29,7 @@ En camino (MVP v0): cuentas, reglas de entrada, salida y traspaso, cierre de mes
 
 ## Stack
 
-TypeScript · SvelteKit 3 + Svelte 5 · Cloudflare Workers · Neon Postgres (Frankfurt) con SQL a mano · Better Auth · Resend · Zod · Vitest + PGlite.
+TypeScript · SvelteKit 3 + Svelte 5 · Cloudflare Workers · Neon Postgres (Frankfurt) con SQL a mano · Better Auth · Resend · Zod · Vitest + PGlite · Playwright.
 
 Detalle en [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -44,9 +46,11 @@ npm run dev
 ```
 
 - `BETTER_AUTH_SECRET`: una cadena aleatoria de 32 caracteres o más (`openssl rand -base64 32`).
+- `ALLOWED_EMAILS`: emails que pueden entrar, separados por comas (vacío = nadie; el registro está cerrado hasta la beta).
 - Sin `RESEND_API_KEY`, el código de entrada sale en la consola de `npm run dev`.
 - `npm test` no necesita claves: usa Postgres en memoria (PGlite).
 - `npm run check` pasa lint, tipos, formato, tests y build, igual que el CI.
+- `npm run e2e` prueba la entrada con Playwright contra la rama de `.env` (con `delivered@resend.dev` en `ALLOWED_EMAILS`); el CI lo corre en una rama temporal de Neon copiada de dev.
 
 ## Estado
 
