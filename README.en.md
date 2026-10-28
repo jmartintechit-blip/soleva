@@ -15,12 +15,15 @@ You note once how your money comes in and goes out (salary, contributions, fixed
 
 > Soleva does not move money, does not connect to your bank and does not recommend products. Every projection is an estimate, not advice.
 
-<p align="center"><img src="docs/entrar.png" width="280" alt="Soleva sign-in screen on mobile"></p>
+<p align="center"><img src="docs/portada.png" width="280" alt="Soleva home page on mobile"></p>
 
 ## Features
 
-Today (block 0, skeleton):
+Today (blocks 0 and 1):
 
+- Public home page with a compound interest calculator in today's euros (3, 6 and 8 % scenarios, 2.5 % inflation).
+- Waitlist with consent and email double opt-in (closed until the legal texts are reviewed).
+- Draft legal notice and privacy policy.
 - Passwordless sign-in with a 6-digit code by email.
 - Private routes behind a session, bottom navigation on mobile and a sidebar on desktop.
 - Horizonte dark design system with self-hosted fonts.
@@ -46,15 +49,16 @@ npm run dev
 ```
 
 - `BETTER_AUTH_SECRET`: a random string of 32 characters or more (`openssl rand -base64 32`).
+- `WAITLIST_OPEN=1` shows the waitlist form (still off in production).
 - `ALLOWED_EMAILS`: comma-separated emails that may sign in (empty = nobody; sign-up is closed until the beta).
 - Without `RESEND_API_KEY`, the sign-in code is printed in the `npm run dev` console.
 - `npm test` needs no keys: it uses in-memory Postgres (PGlite).
 - `npm run check` runs lint, types, format, tests and build, like CI.
-- `npm run e2e` tests sign-in with Playwright against the `.env` branch (with `delivered@resend.dev` in `ALLOWED_EMAILS`); CI runs it on a throwaway Neon branch copied from dev.
+- `npm run e2e` tests sign-in, the waitlist and the calculator with Playwright against the `.env` branch (with `delivered@resend.dev` in `ALLOWED_EMAILS`); CI runs it on a throwaway Neon branch copied from dev.
 
 ## Status
 
-Under construction: block 0 of 7 of MVP v0 done (v0.1.0), deployed with sign-up closed. See [CHANGELOG.md](CHANGELOG.md).
+Under construction: blocks 0 and 1 of 7 of MVP v0 done (v0.2.0), deployed with sign-up and the waitlist closed. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Roadmap
 

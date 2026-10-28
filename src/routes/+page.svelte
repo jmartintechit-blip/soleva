@@ -259,6 +259,12 @@
     min-height: 42px;
     padding: 0 18px;
   }
+  /* On phones the sections are one scroll away; keep the header to one line. */
+  @media (max-width: 640px) {
+    header .link {
+      display: none;
+    }
+  }
 
   .hero {
     display: flex;

@@ -15,12 +15,15 @@ Apuntas una vez cómo entra y sale tu dinero (nómina, aportaciones, gastos fijo
 
 > Soleva no mueve dinero, no se conecta a tu banco y no recomienda productos. Toda proyección es una estimación, no asesoramiento.
 
-<p align="center"><img src="docs/entrar.png" width="280" alt="Pantalla de entrada de Soleva en móvil"></p>
+<p align="center"><img src="docs/portada.png" width="280" alt="Portada de Soleva en móvil"></p>
 
 ## Funcionalidades
 
-Hoy (bloque 0, esqueleto):
+Hoy (bloques 0 y 1):
 
+- Portada pública con calculadora de interés compuesto en euros de hoy (escenarios 3, 6 y 8 % e inflación 2,5 %).
+- Lista de espera con consentimiento y doble confirmación por email (cerrada hasta revisar los textos legales).
+- Aviso legal y política de privacidad en borrador.
 - Entrada sin contraseña con un código de 6 cifras por email.
 - Rutas privadas con sesión, navegación inferior en móvil y lateral en escritorio.
 - Sistema de diseño Horizonte, oscuro, con fuentes alojadas en el propio sitio.
@@ -46,15 +49,16 @@ npm run dev
 ```
 
 - `BETTER_AUTH_SECRET`: una cadena aleatoria de 32 caracteres o más (`openssl rand -base64 32`).
+- `WAITLIST_OPEN=1` enseña el formulario de la lista de espera (en producción sigue apagado).
 - `ALLOWED_EMAILS`: emails que pueden entrar, separados por comas (vacío = nadie; el registro está cerrado hasta la beta).
 - Sin `RESEND_API_KEY`, el código de entrada sale en la consola de `npm run dev`.
 - `npm test` no necesita claves: usa Postgres en memoria (PGlite).
 - `npm run check` pasa lint, tipos, formato, tests y build, igual que el CI.
-- `npm run e2e` prueba la entrada con Playwright contra la rama de `.env` (con `delivered@resend.dev` en `ALLOWED_EMAILS`); el CI lo corre en una rama temporal de Neon copiada de dev.
+- `npm run e2e` prueba la entrada, la lista de espera y la calculadora con Playwright contra la rama de `.env` (con `delivered@resend.dev` en `ALLOWED_EMAILS`); el CI lo corre en una rama temporal de Neon copiada de dev.
 
 ## Estado
 
-En construcción: bloque 0 de 7 del MVP v0 cerrado (v0.1.0), desplegado con el registro cerrado. Ver [CHANGELOG.md](CHANGELOG.md).
+En construcción: bloques 0 y 1 de 7 del MVP v0 cerrados (v0.2.0), desplegado con el registro y la lista de espera cerrados. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Hoja de ruta
 

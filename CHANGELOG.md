@@ -4,6 +4,22 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.2.0] - 2026-10-28
+
+### Añadido
+
+- Portada pública: titular, vista previa de la proyección, pilares, cómo funciona y privacidad.
+- Calculadora de interés compuesto en euros de hoy con escenarios prudente, base y optimista.
+- Motor: interés compuesto en céntimos y formato español de euros, con tests.
+- Lista de espera con consentimiento, doble confirmación por email y baja que borra el email; cerrada en producción (`WAITLIST_OPEN`).
+- Aviso legal y política de privacidad en borrador, con los huecos marcados.
+- Imagen para compartir enlaces (1280×640).
+
+### Cambiado
+
+- Better Auth se crea una vez por isolate: la mediana de CPU por petición baja de 11 ms a 1,5 ms.
+- El aviso de consumo vigila la mediana de CPU en lugar del p99.
+
 ## [0.1.0] - 2026-10-28
 
 ### Añadido
@@ -20,5 +36,6 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 - Prueba E2E de entrada con Playwright, en CI sobre una rama temporal de Neon copiada de dev.
 - Primer despliegue en Cloudflare Workers.
 
-[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.1.0...HEAD
+[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.2.0
 [0.1.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.1.0
