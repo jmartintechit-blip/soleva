@@ -4,8 +4,13 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.3.0] - 2026-10-29
+
 ### Añadido
 
+- Motor: meses y recurrencias (mensual, trimestral, anual, una vez; día 31 al último día del mes), reglas ordenadas por día, intereses y depreciación por cuenta, patrimonio = activos − deudas.
+- Motor: proyección mes a mes en euros de hoy y del momento por escenario, semáforo del plan (umbral −3 %) y tres «¿qué pasa si…?» (más al mes, pausar aportaciones, gasto puntual).
+- Tests de invariantes: un traspaso no cambia el patrimonio, los pagos a deudas se topan a lo que se debe e importes siempre en céntimos enteros.
 - Aviso legal completo: titular, encaje con la Ley 6/2023 (sin asesoramiento), condiciones de uso, responsabilidad y ley aplicable.
 - Política de privacidad completa: responsable, bases legales, plazos, encargados y cookie de sesión.
 
@@ -45,6 +50,7 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 - Prueba E2E de entrada con Playwright, en CI sobre una rama temporal de Neon copiada de dev.
 - Primer despliegue en Cloudflare Workers.
 
-[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.2.0...HEAD
+[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.2.0
 [0.1.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.1.0
