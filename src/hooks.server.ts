@@ -1,4 +1,5 @@
 import { building, dev } from '$app/env';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Pool } from '@neondatabase/serverless';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { env, waitUntil } from 'cloudflare:workers';
@@ -21,17 +22,20 @@ function secure(res: Response): Response {
   return res;
 }
 
-export const handle: Handle = async ({ event, resolve }) => {
-  if (building) return resolve(event);
-  // Auth (and its database pool) is built only when a route asks for it, so public pages stay cheap.
-  // One pool per request: Workers cannot reuse sockets across requests.
-  let pool: Pool | undefined;
-  let auth: Auth | undefined;
-  event.locals.auth = () =>
-    (auth ??= createAuth({
-      pool: (pool = new Pool({ connectionString: env.DATABASE_URL, max: 1 })),
+// Building Better Auth costs ~9 ms of CPU (Workers Free allows 10 per request), so it is built
+// once per isolate and origin. Its queries go to the current request's pool instead: Workers
+// cannot reuse sockets across requests.
+const requestPool = new AsyncLocalStorage<() => Pool>();
+const currentPool = { connect: () => requestPool.getStore()!().connect() };
+const auths = new Map<string, Auth>();
+
+function authFor(origin: string): Auth {
+  let auth = auths.get(origin);
+  if (!auth) {
+    auth = createAuth({
+      pool: currentPool,
       secret: env.BETTER_AUTH_SECRET,
-      baseURL: event.url.origin,
+      baseURL: origin,
       // Unset or empty means nobody can sign in: closed until the beta opens.
       allowedEmails: (env.ALLOWED_EMAILS ?? '')
         .split(',')
@@ -42,14 +46,27 @@ export const handle: Handle = async ({ event, resolve }) => {
         if (dev) return console.log(`[dev] código para ${email}: ${otp}`);
         throw new Error('RESEND_API_KEY is not set');
       },
-    }));
+    });
+    auths.set(origin, auth);
+  }
+  return auth;
+}
+
+export const handle: Handle = async ({ event, resolve }) => {
+  if (building) return resolve(event);
+  // The pool is opened only when a query runs, so public pages stay cheap.
+  let pool: Pool | undefined;
+  const getPool = () => (pool ??= new Pool({ connectionString: env.DATABASE_URL, max: 1 }));
+  event.locals.auth = () => authFor(event.url.origin);
   try {
-    if (isAuthPath(event.url.toString(), { basePath: '/api/auth' })) {
-      return secure(
-        await svelteKitHandler({ auth: event.locals.auth(), event, resolve, building }),
-      );
-    }
-    return secure(await resolve(event));
+    return await requestPool.run(getPool, async () => {
+      if (isAuthPath(event.url.toString(), { basePath: '/api/auth' })) {
+        return secure(
+          await svelteKitHandler({ auth: event.locals.auth(), event, resolve, building }),
+        );
+      }
+      return secure(await resolve(event));
+    });
   } finally {
     if (pool) waitUntil(pool.end());
   }
