@@ -1,0 +1,83 @@
+<script lang="ts">
+  import { formatEuros } from '#lib/engine/money.ts';
+  import { netWorth } from '#lib/engine/rules.ts';
+  import { KIND_LABEL } from '#lib/labels.ts';
+  import type { PageProps } from './$types';
+
+  let { data }: PageProps = $props();
+
+  const active = $derived(data.accounts.filter((a) => !a.archived));
+  const archived = $derived(data.accounts.filter((a) => a.archived));
+</script>
+
+<svelte:head>
+  <title>Cuentas · Soleva</title>
+</svelte:head>
+
+{#snippet row(a: (typeof data.accounts)[number])}
+  <a class="sv-row" href="/cuentas/{a.id}">
+    <span class="sv-row__main">
+      <span class="sv-row__title">{a.name}</span>
+      <span class="sv-row__meta">{KIND_LABEL[a.kind]}{a.isEstimated ? ' · estimado' : ''}</span>
+    </span>
+    <span class="sv-row__value">
+      {formatEuros(a.kind === 'deuda' ? -a.balanceCents : a.balanceCents, { withCents: true })}
+    </span>
+  </a>
+{/snippet}
+
+<header class="sv-enter">
+  <div class="sv-hero">
+    <span class="sv-hero__label">Patrimonio</span>
+    <span class="sv-hero__value">{formatEuros(netWorth(data.accounts))}</span>
+    <span class="sv-hero__meta">Lo que tienes menos lo que debes.</span>
+  </div>
+  <a class="sv-btn sv-btn--primary sv-btn--sm" href="/cuentas/nueva">Nueva cuenta</a>
+</header>
+
+{#if active.length}
+  <section aria-label="Tus cuentas">
+    {#each active as a (a.id)}{@render row(a)}{/each}
+  </section>
+{:else}
+  <p class="body sv-muted">
+    Aún no tienes cuentas. Empieza por la del banco donde cobras: solo su nombre y su saldo.
+  </p>
+{/if}
+
+{#if archived.length}
+  <section aria-labelledby="archivadas">
+    <h2 id="archivadas" class="sv-label">Archivadas</h2>
+    {#each archived as a (a.id)}{@render row(a)}{/each}
+  </section>
+{/if}
+
+<style>
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+  section {
+    display: flex;
+    flex-direction: column;
+    max-width: 720px;
+  }
+  section + section {
+    margin-top: var(--space-6);
+  }
+  h2 {
+    margin: 0 0 var(--space-2);
+  }
+  .sv-row {
+    color: inherit;
+    text-decoration: none;
+  }
+  p {
+    margin: 0;
+    max-width: 48ch;
+  }
+</style>

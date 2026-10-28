@@ -20,12 +20,16 @@ export const accountInput = z.object({
   name: z.string().trim().min(1, 'Ponle un nombre').max(60, 'Máximo 60 caracteres'),
   kind: z.enum(KINDS, 'Elige un tipo de cuenta'),
   balanceCents: z
-    .number()
+    .number('Escribe un importe, por ejemplo 1.250,50')
     .int()
     .min(0, 'No puede ser negativo')
     .max(MAX_CENTS, 'Importe demasiado alto'),
   isEstimated: z.boolean(),
-  annualRateBp: z.number().int().min(-10_000).max(10_000, 'Entre −100 % y 100 %'),
+  annualRateBp: z
+    .number('Escribe un porcentaje, por ejemplo 2,5')
+    .int()
+    .min(-10_000, 'Entre −100 % y 100 %')
+    .max(10_000, 'Entre −100 % y 100 %'),
 });
 export type AccountInput = z.infer<typeof accountInput>;
 

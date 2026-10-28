@@ -19,3 +19,20 @@ export function formatEuros(cents: number, { withCents = false } = {}): string {
   const text = (withCents ? exact : whole).format(Math.abs(euros));
   return `${euros < 0 ? '−' : ''}${text} €`;
 }
+
+// "1.250,50", "1250,5", "12.5" or "1.250" (thousands) → cents; null if it is not an amount.
+// Two or fewer digits after the only separator make it a decimal one.
+function parseDecimal(text: string): number | null {
+  let s = text.replace(/[\s€%]/g, '').replace('−', '-');
+  const sign = s.startsWith('-') ? -1 : 1;
+  s = s.replace(/^[-+]/, '');
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (!/^\d+\.\d{1,2}$/.test(s)) s = s.replace(/\./g, '');
+  const m = /^(\d+)(?:\.(\d{1,2}))?$/.exec(s);
+  if (!m) return null;
+  return sign * (Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0')));
+}
+
+export const parseEuros = parseDecimal;
+// "6", "6,5" or "−15" (%) → basis points.
+export const parsePercent = parseDecimal;
