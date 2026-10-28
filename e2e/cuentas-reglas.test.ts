@@ -11,6 +11,8 @@ test('create accounts, a rule from its template, and pause it', async ({ page })
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
   await expect(page.getByText('Ponle un nombre')).toBeVisible();
+  // The failed post reloads the page: wait for it to hydrate before typing again.
+  await page.waitForLoadState('networkidle');
 
   await page.getByLabel('Nombre').fill('Banco');
   await page.getByLabel('Saldo o valor hoy').fill('1.250,50');
@@ -27,6 +29,7 @@ test('create accounts, a rule from its template, and pause it', async ({ page })
   await expect(page.getByText('6.251 €')).toBeVisible();
 
   await page.goto('/reglas');
+  await page.waitForLoadState('networkidle');
   await page.getByRole('link', { name: 'Nueva regla' }).click();
   await page.waitForLoadState('networkidle');
   await expect(page.getByLabel('Nombre')).toHaveValue('Aportación al fondo indexado');
