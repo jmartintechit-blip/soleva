@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createAuth } from './auth.ts';
+import { createAuth, postAuth } from './auth.ts';
 import { migrate } from './db/migrate.ts';
 import { createPgliteDb, pgliteAsPool } from './db/pglite.ts';
 
@@ -66,5 +66,47 @@ describe('email code sign-in', () => {
     for (let i = 0; i < 3; i++) expect((await sendCode(`u${i}@example.com`)).status).toBe(200);
     expect((await sendCode('u3@example.com')).status).toBe(429);
     expect((await sendCode('u3@example.com', '203.0.113.2')).status).toBe(200);
+  });
+});
+
+describe('postAuth (form actions)', () => {
+  const formEvent = (cookie = '') => {
+    const set: Record<string, string> = {};
+    return {
+      set,
+      url: new URL(`${baseURL}/entrar`),
+      request: new Request(`${baseURL}/entrar`, {
+        headers: { cookie, 'cf-connecting-ip': '198.51.100.7' },
+      }),
+      cookies: { set: (name: string, value: string) => void (set[name] = value) },
+    };
+  };
+
+  it('is rate limited like the HTTP API', async () => {
+    const send = () =>
+      postAuth(auth, formEvent(), '/email-otp/send-verification-otp', {
+        email: 'ana@example.com',
+        type: 'sign-in',
+      });
+    for (let i = 0; i < 3; i++) expect((await send()).status).toBe(200);
+    expect((await send()).status).toBe(429);
+  });
+
+  it('copies the session cookie onto the SvelteKit response', async () => {
+    const event = formEvent();
+    await postAuth(auth, event, '/email-otp/send-verification-otp', {
+      email: 'ana@example.com',
+      type: 'sign-in',
+    });
+    const res = await postAuth(auth, event, '/sign-in/email-otp', {
+      email: 'ana@example.com',
+      otp: sent[0]!.otp,
+    });
+    expect(res.ok).toBe(true);
+    const [name, value] = Object.entries(event.set).find(([n]) => n.includes('session_token'))!;
+    const session = await auth.api.getSession({
+      headers: new Headers({ cookie: `${name}=${value}` }),
+    });
+    expect(session?.user.email).toBe('ana@example.com');
   });
 });

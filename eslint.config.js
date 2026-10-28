@@ -34,8 +34,7 @@ export default defineConfig(
     },
   },
   {
-    // Override or add rule settings here, such as:
-    // 'svelte/button-has-type': 'error'
-    rules: {},
+    // No `paths.base` is configured, so plain hrefs are already correct.
+    rules: { 'svelte/no-navigation-without-resolve': 'off' },
   },
 );

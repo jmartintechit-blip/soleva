@@ -12,5 +12,5 @@ export async function sendOtpEmail(apiKey: string, to: string, otp: string): Pro
       text: `Tu código para entrar en Soleva es ${otp}.\n\nCaduca en 10 minutos. Si no lo has pedido tú, ignora este correo.`,
     }),
   });
-  if (!res.ok) throw new Error(`Resend responded ${res.status}`);
+  if (!res.ok) throw new Error(`Resend responded ${res.status}: ${await res.text()}`);
 }
