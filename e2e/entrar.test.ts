@@ -17,6 +17,8 @@ async function setCode(email: string, code: string) {
 }
 
 test('sign in with an email code and sign out', async ({ page }) => {
+  // The test branch is a copy of dev: earlier local runs may have used up the code limit.
+  await neon(process.env.DATABASE_URL!)`delete from "rateLimit"`;
   await page.goto('/inicio');
   await expect(page).toHaveURL(/\/entrar$/);
   // vite dev hydrates late and resets what was typed before.
