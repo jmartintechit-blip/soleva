@@ -83,13 +83,11 @@
     </div>
     <div class="row body-sm">
       <span
-        ><span class="sv-muted">Pones tú</span>{' '}<span class="sv-num">{formatEuros(put)}</span
-        ></span
+        ><span class="sv-muted">Pones tú</span> <span class="sv-num">{formatEuros(put)}</span></span
       >
       <span>
-        <span class="sv-muted">Rentabilidad</span>{' '}<span class="gain sv-num"
-          >+{formatEuros(gain)}</span
-        >
+        <span class="sv-muted">Rentabilidad</span>
+        <span class="gain sv-num">+{formatEuros(gain)}</span>
       </span>
     </div>
     <span class="sv-legal">
