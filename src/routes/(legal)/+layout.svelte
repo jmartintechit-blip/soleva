@@ -9,10 +9,6 @@
   <header>
     <a href="/" class="home" aria-label="Soleva, inicio"><Logo /></a>
   </header>
-  <!-- Drafts: the beta does not open until a professional reviews them (parada 6). -->
-  <p class="sv-pill draft">
-    <span class="sv-pill__dot"></span>Borrador pendiente de revisión legal
-  </p>
   <article class="prose">{@render children()}</article>
   <footer class="body-sm sv-subtle">
     <a href="/aviso-legal">Aviso legal</a> · <a href="/privacidad">Privacidad</a> · © 2026 Soleva
@@ -31,10 +27,6 @@
   .home {
     color: var(--ink);
     text-decoration: none;
-  }
-  .draft {
-    margin: 0;
-    align-self: flex-start;
   }
   .prose :global(h1) {
     margin: 0 0 var(--space-5);
@@ -66,13 +58,6 @@
   .prose :global(strong) {
     color: var(--ink);
     font-weight: 500;
-  }
-  /* Gaps the reviewer fills in, impossible to miss. */
-  .prose :global(mark) {
-    background: var(--negative-soft);
-    color: var(--ink);
-    padding: 0 4px;
-    border-radius: 4px;
   }
   footer {
     padding-top: var(--space-5);

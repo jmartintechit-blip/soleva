@@ -4,6 +4,15 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+### Añadido
+
+- Aviso legal completo: titular, encaje con la Ley 6/2023 (sin asesoramiento), condiciones de uso, responsabilidad y ley aplicable.
+- Política de privacidad completa: responsable, bases legales, plazos, encargados y cookie de sesión.
+
+### Cambiado
+
+- Las sesiones ya no guardan la IP ni el navegador, y la IP de los límites de intentos se borra a partir de los 10 minutos.
+
 ## [0.2.0] - 2026-10-28
 
 ### Añadido

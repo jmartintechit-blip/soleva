@@ -22,8 +22,8 @@ Apuntas una vez cómo entra y sale tu dinero (nómina, aportaciones, gastos fijo
 Hoy (bloques 0 y 1):
 
 - Portada pública con calculadora de interés compuesto en euros de hoy (escenarios 3, 6 y 8 % e inflación 2,5 %).
-- Lista de espera con consentimiento y doble confirmación por email (cerrada hasta revisar los textos legales).
-- Aviso legal y política de privacidad en borrador.
+- Lista de espera con consentimiento y doble confirmación por email (preparada, aún cerrada).
+- Aviso legal, condiciones de uso y política de privacidad.
 - Entrada sin contraseña con un código de 6 cifras por email.
 - Rutas privadas con sesión, navegación inferior en móvil y lateral en escritorio.
 - Sistema de diseño Horizonte, oscuro, con fuentes alojadas en el propio sitio.

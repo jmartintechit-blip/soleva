@@ -22,8 +22,8 @@ You note once how your money comes in and goes out (salary, contributions, fixed
 Today (blocks 0 and 1):
 
 - Public home page with a compound interest calculator in today's euros (3, 6 and 8 % scenarios, 2.5 % inflation).
-- Waitlist with consent and email double opt-in (closed until the legal texts are reviewed).
-- Draft legal notice and privacy policy.
+- Waitlist with consent and email double opt-in (ready, still closed).
+- Legal notice, terms of use and privacy policy.
 - Passwordless sign-in with a 6-digit code by email.
 - Private routes behind a session, bottom navigation on mobile and a sidebar on desktop.
 - Horizonte dark design system with self-hosted fonts.
