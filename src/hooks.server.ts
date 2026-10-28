@@ -5,7 +5,8 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { env, waitUntil } from 'cloudflare:workers';
 import { isAuthPath, svelteKitHandler } from 'better-auth/svelte-kit';
 import { createAuth, type Auth } from '#lib/server/auth.ts';
-import { sendOtpEmail } from '#lib/server/email.ts';
+import { createNeonDb, type Db } from '#lib/server/db/index.ts';
+import { otpEmail, sendEmail, type Email } from '#lib/server/email.ts';
 
 // CSP comes from the Kit config (vite.config.ts); these complete it on every dynamic response.
 const SECURITY_HEADERS = {
@@ -25,6 +26,12 @@ function secure(res: Response): Response {
 // Building Better Auth costs ~9 ms of CPU (Workers Free allows 10 per request), so it is built
 // once per isolate and origin. Its queries go to the current request's pool instead: Workers
 // cannot reuse sockets across requests.
+async function mail(email: Email): Promise<void> {
+  if (env.RESEND_API_KEY) return sendEmail(env.RESEND_API_KEY, email);
+  if (dev) return console.log(`[dev] email para ${email.to}: ${email.subject}\n${email.text}`);
+  throw new Error('RESEND_API_KEY is not set');
+}
+
 const requestPool = new AsyncLocalStorage<() => Pool>();
 const currentPool = { connect: () => requestPool.getStore()!().connect() };
 const auths = new Map<string, Auth>();
@@ -41,11 +48,7 @@ function authFor(origin: string): Auth {
         .split(',')
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean),
-      sendOtp: async (email, otp) => {
-        if (env.RESEND_API_KEY) return sendOtpEmail(env.RESEND_API_KEY, email, otp);
-        if (dev) return console.log(`[dev] código para ${email}: ${otp}`);
-        throw new Error('RESEND_API_KEY is not set');
-      },
+      sendOtp: (email, otp) => mail(otpEmail(email, otp)),
     });
     auths.set(origin, auth);
   }
@@ -57,7 +60,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   // The pool is opened only when a query runs, so public pages stay cheap.
   let pool: Pool | undefined;
   const getPool = () => (pool ??= new Pool({ connectionString: env.DATABASE_URL, max: 1 }));
+  let db: Db | undefined;
   event.locals.auth = () => authFor(event.url.origin);
+  event.locals.db = () => (db ??= createNeonDb(getPool()));
+  event.locals.mail = mail;
   try {
     return await requestPool.run(getPool, async () => {
       if (isAuthPath(event.url.toString(), { basePath: '/api/auth' })) {

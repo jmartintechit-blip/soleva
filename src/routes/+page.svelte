@@ -2,6 +2,10 @@
   import Logo from '#lib/components/Logo.svelte';
   import Calculator from '#lib/components/web/Calculator.svelte';
   import HeroPreview from '#lib/components/web/HeroPreview.svelte';
+  import WaitlistForm from '#lib/components/web/WaitlistForm.svelte';
+  import type { PageProps } from './$types';
+
+  let { data, form }: PageProps = $props();
 
   const pillars = [
     {
@@ -88,6 +92,7 @@
           dónde estarás dentro de 10 años. Sin conectar tu banco.
         </p>
         <div id="lista" class="lista sv-enter sv-enter-4">
+          <WaitlistForm open={data.waitlistOpen} {form} />
           <span class="body-sm sv-subtle">
             Gratis para empezar · 14 días de prueba en los planes de pago · Sin spam
           </span>

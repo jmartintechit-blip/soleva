@@ -56,6 +56,7 @@ jobs:
             echo "BETTER_AUTH_SECRET=$(openssl rand -base64 48)"
             echo "RESEND_API_KEY="
             echo "ALLOWED_EMAILS=delivered@resend.dev"
+            echo "WAITLIST_OPEN=1"
           } > .dev.vars
           echo "DATABASE_URL=$DB_URL" > .env
       - run: npm run migrate

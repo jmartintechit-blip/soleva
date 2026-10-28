@@ -5,3 +5,5 @@ BETTER_AUTH_SECRET=
 RESEND_API_KEY=
 # ALLOWED_EMAILS: comma-separated emails that may sign in (empty = nobody).
 ALLOWED_EMAILS=
+# WAITLIST_OPEN=1 shows the waiting list form. Off in production until the legal texts are reviewed.
+WAITLIST_OPEN=

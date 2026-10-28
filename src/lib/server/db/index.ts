@@ -12,9 +12,12 @@ export interface Db {
 const noNesting = () => Promise.reject(new Error('Nested transactions are not supported'));
 
 // Neon's Pool speaks the pg protocol over WebSocket, so it runs in Workers and in Node.
-// On Workers create one per request and close it before the response ends.
-export function createNeonDb(connectionString: string): Db {
-  const pool = new Pool({ connectionString, max: 1 });
+// On Workers use one per request (pass the request's pool) and close it before the response ends.
+export function createNeonDb(connection: string | Pool): Db {
+  const pool =
+    typeof connection === 'string'
+      ? new Pool({ connectionString: connection, max: 1 })
+      : connection;
   return {
     query: async <T extends Row>(sql: string, params?: unknown[]) =>
       (await pool.query(sql, params)).rows as T[],
