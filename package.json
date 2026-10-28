@@ -15,7 +15,8 @@
     "format:write": "prettier --write .",
     "test": "vitest run --passWithNoTests",
     "check": "npm run lint && npm run typecheck && npm run format && npm test && npm run build",
-    "migrate": "node --env-file-if-exists=.env src/lib/server/db/migrate-cli.ts"
+    "migrate": "node --env-file-if-exists=.env src/lib/server/db/migrate-cli.ts",
+    "usage": "node --env-file-if-exists=.env src/lib/server/usage-cli.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.12",
