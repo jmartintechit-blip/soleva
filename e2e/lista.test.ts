@@ -16,6 +16,14 @@ test('join the waiting list, confirm and leave', async ({ page }) => {
   await page.getByRole('button', { name: 'Quiero probarla' }).click();
   // The browser blocks the submit until consent is given.
   await expect(page.getByRole('status')).toHaveCount(0);
+  // And the server refuses it too, without saving the email.
+  const noConsent = await page.request.post('/?/unirse', {
+    form: { email: EMAIL },
+    headers: { origin: 'http://localhost:5173' },
+  });
+  expect(noConsent.status()).toBe(400);
+  expect(await noConsent.text()).toContain('Marca la casilla');
+  expect(await sql`select 1 from waitlist where email = ${EMAIL}`).toHaveLength(0);
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: 'Quiero probarla' }).click();
   await expect(page.getByRole('status')).toContainText('Revisa tu email');
