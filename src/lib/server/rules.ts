@@ -10,9 +10,13 @@ export const ruleInput = z
   .object({
     name: z.string().trim().min(1, 'Ponle un nombre').max(60, 'Máximo 60 caracteres'),
     type: z.enum(['entra', 'sale', 'mueve'], 'Elige qué hace la regla'),
-    amountCents: z.number().int().min(1, 'Pon un importe').max(MAX_CENTS, 'Importe demasiado alto'),
+    amountCents: z
+      .number('Escribe un importe, por ejemplo 300')
+      .int()
+      .min(1, 'Pon un importe')
+      .max(MAX_CENTS, 'Importe demasiado alto'),
     frequency: z.enum(['mensual', 'trimestral', 'anual', 'una_vez'], 'Elige cada cuánto'),
-    day: z.number().int().min(1, 'Día entre 1 y 31').max(31, 'Día entre 1 y 31'),
+    day: z.number('Día entre 1 y 31').int().min(1, 'Día entre 1 y 31').max(31, 'Día entre 1 y 31'),
     startMonth: month,
     endMonth: month.optional(),
     fromAccountId: accountId.optional(),

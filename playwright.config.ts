@@ -10,6 +10,8 @@ try {
 export default defineConfig({
   testDir: 'e2e',
   forbidOnly: !!process.env.CI,
+  // One at a time: every test signs in as the same email, and a new code replaces the last one.
+  workers: 1,
   reporter: process.env.CI ? 'github' : 'list',
   use: { baseURL: 'http://localhost:5173', trace: 'retain-on-failure' },
   // Desktop: «Cerrar sesión» is only in the sidebar until Ajustes (B6).
