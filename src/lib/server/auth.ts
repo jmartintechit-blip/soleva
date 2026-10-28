@@ -1,4 +1,5 @@
 import { betterAuth } from 'better-auth';
+import { createAuthMiddleware } from 'better-auth/api';
 import { emailOTP } from 'better-auth/plugins';
 import { parseSetCookieHeader, toCookieOptions } from 'better-auth/cookies';
 
@@ -29,8 +30,24 @@ export function createAuth({ pool, secret, baseURL, sendOtp, allowedEmails }: Au
         '/sign-in/email-otp': { window: 600, max: 10 },
       },
     },
+    // Rate-limit rows key on the IP in clear: drop them once past the longest window (10 min).
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== '/email-otp/send-verification-otp') return;
+        await ctx.context.adapter.deleteMany({
+          model: 'rateLimit',
+          where: [{ field: 'lastRequest', operator: 'lt', value: Date.now() - 600_000 }],
+        });
+      }),
+    },
     databaseHooks: {
       user: { create: { before: async (user) => allowed(user.email) } },
+      // Data minimisation: the IP is only used for rate limits, never stored with the session.
+      session: {
+        create: {
+          before: async (session) => ({ data: { ...session, ipAddress: null, userAgent: null } }),
+        },
+      },
     },
     plugins: [
       emailOTP({

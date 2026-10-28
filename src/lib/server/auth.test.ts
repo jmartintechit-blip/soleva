@@ -49,6 +49,23 @@ describe('email code sign-in', () => {
     expect(session?.user.email).toBe('ana@example.com');
   });
 
+  it('does not store IP or user agent with the session', async () => {
+    await sendCode('ana@example.com');
+    await signIn('ana@example.com', sent[0]!.otp);
+    const { rows } = await pglite.query('select "ipAddress", "userAgent" from session');
+    expect(rows).toEqual([{ ipAddress: null, userAgent: null }]);
+  });
+
+  it('forgets rate-limit IPs after 10 minutes', async () => {
+    await pglite.query(
+      `insert into "rateLimit" (id, key, count, "lastRequest") values ('old', '198.51.100.9|/x', 1, $1)`,
+      [Date.now() - 601_000],
+    );
+    await sendCode('ana@example.com');
+    const { rows } = await pglite.query<{ key: string }>('select key from "rateLimit"');
+    expect(rows.map((r) => r.key)).toEqual(['203.0.113.1|/email-otp/send-verification-otp']);
+  });
+
   it('stores the code hashed, not in clear', async () => {
     await sendCode('ana@example.com');
     const { rows } = await pglite.query<{ value: string }>('select value from verification');
