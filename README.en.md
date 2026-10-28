@@ -19,14 +19,15 @@ You note once how your money comes in and goes out (salary, contributions, fixed
 
 ## Features
 
-Today (blocks 0, 1 and 2):
+Today (blocks 0 to 3):
 
 - Public home page with a compound interest calculator in today's euros (3, 6 and 8 % scenarios, 2.5 % inflation).
 - Waitlist with consent and email double opt-in (ready, still closed).
 - Legal notice, terms of use and privacy policy.
 - Passwordless sign-in with a 6-digit code by email.
 - Private routes behind a session, bottom navigation on mobile and a sidebar on desktop.
-- Rules and month-by-month projection engine by scenario, with invariant tests (no screens yet).
+- Accounts and rules: create, edit, pause, archive and delete; a New rule sheet with templates.
+- Rules and month-by-month projection engine by scenario, with invariant tests (the projection screen comes in block 4).
 - Horizonte dark design system with self-hosted fonts.
 
 Coming (MVP v0): accounts, income, expense and transfer rules, a one-minute month close, 5, 10 and 20-year projections with three scenarios, an on-track signal against your plan, data export and account deletion.
@@ -59,7 +60,7 @@ npm run dev
 
 ## Status
 
-Under construction: blocks 0, 1 and 2 of 7 of MVP v0 done (v0.3.0), deployed with sign-up and the waitlist closed. See [CHANGELOG.md](CHANGELOG.md).
+Under construction: blocks 0 to 3 of 7 of MVP v0 done (v0.4.0), deployed with sign-up and the waitlist closed. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Roadmap
 

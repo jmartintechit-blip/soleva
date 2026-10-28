@@ -4,6 +4,15 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.4.0] - 2026-10-29
+
+### Añadido
+
+- Cuentas: crear, editar, archivar y borrar, con saldo en céntimos, valor estimado e interés o depreciación anual (vehículo −15 % por defecto).
+- Reglas: listado con interruptor de pausa y hoja «Nueva regla» con plantillas (nómina, gastos fijos, aportación), importe con deslizador, frecuencia, día, desde y hasta, y su efecto estimado a 10 años.
+- Importes y porcentajes escritos a la española (`1.250,50`) o con punto decimal.
+- Aislamiento por usuario en base de datos: claves foráneas compuestas y 404 para cuentas y reglas ajenas, con tests.
+
 ## [0.3.0] - 2026-10-29
 
 ### Añadido
@@ -50,7 +59,8 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 - Prueba E2E de entrada con Playwright, en CI sobre una rama temporal de Neon copiada de dev.
 - Primer despliegue en Cloudflare Workers.
 
-[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.3.0...HEAD
+[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.4.0
 [0.3.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.2.0
 [0.1.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.1.0

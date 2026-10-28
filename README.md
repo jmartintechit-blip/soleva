@@ -19,14 +19,15 @@ Apuntas una vez cómo entra y sale tu dinero (nómina, aportaciones, gastos fijo
 
 ## Funcionalidades
 
-Hoy (bloques 0, 1 y 2):
+Hoy (bloques 0 a 3):
 
 - Portada pública con calculadora de interés compuesto en euros de hoy (escenarios 3, 6 y 8 % e inflación 2,5 %).
 - Lista de espera con consentimiento y doble confirmación por email (preparada, aún cerrada).
 - Aviso legal, condiciones de uso y política de privacidad.
 - Entrada sin contraseña con un código de 6 cifras por email.
 - Rutas privadas con sesión, navegación inferior en móvil y lateral en escritorio.
-- Motor de reglas y proyección mes a mes por escenario, con tests de invariantes (aún sin pantallas).
+- Cuentas y reglas: crear, editar, pausar, archivar y borrar; hoja «Nueva regla» con plantillas.
+- Motor de reglas y proyección mes a mes por escenario, con tests de invariantes (la pantalla de proyección llega en el bloque 4).
 - Sistema de diseño Horizonte, oscuro, con fuentes alojadas en el propio sitio.
 
 En camino (MVP v0): cuentas, reglas de entrada, salida y traspaso, cierre de mes en un minuto, proyección a 5, 10 y 20 años con tres escenarios, semáforo frente a tu plan, exportar tus datos y borrar tu cuenta.
@@ -59,7 +60,7 @@ npm run dev
 
 ## Estado
 
-En construcción: bloques 0, 1 y 2 de 7 del MVP v0 cerrados (v0.3.0), desplegado con el registro y la lista de espera cerrados. Ver [CHANGELOG.md](CHANGELOG.md).
+En construcción: bloques 0 a 3 de 7 del MVP v0 cerrados (v0.4.0), desplegado con el registro y la lista de espera cerrados. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Hoja de ruta
 

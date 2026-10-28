@@ -17,7 +17,7 @@ navegador ──HTTPS──▶ Cloudflare Worker (SvelteKit)
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/routes/`        | Páginas y form actions. `(app)/` agrupa las rutas privadas con su guarda de sesión.                                                    |
 | `src/lib/engine/`    | Motor: funciones puras sin dependencias (interés compuesto, euros, meses, reglas, intereses, proyección, semáforo y «¿qué pasa si…?»). |
-| `src/lib/server/`    | Auth, email, acceso a datos y scripts de mantenimiento (`migrate`, `usage`).                                                           |
+| `src/lib/server/`    | Auth, email, repositorios (`accounts`, `rules`: siempre con `userId`) y scripts (`migrate`, `usage`).                                  |
 | `src/lib/styles/`    | `tokens.css` y `componentes.css` del sistema Horizonte, sin tocar.                                                                     |
 | `migrations/`        | SQL numerado (`0001_auth.sql`, …), aplicado en orden por `npm run migrate`.                                                            |
 | `.github/workflows/` | CI (`ci.yml`) y aviso diario de consumo (`usage.yml`).                                                                                 |
