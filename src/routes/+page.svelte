@@ -1,5 +1,6 @@
 <script lang="ts">
   import Logo from '#lib/components/Logo.svelte';
+  import Calculator from '#lib/components/web/Calculator.svelte';
   import HeroPreview from '#lib/components/web/HeroPreview.svelte';
 
   const pillars = [
@@ -119,6 +120,11 @@
           </li>
         {/each}
       </ol>
+    </section>
+
+    <section id="calculadora" class="calculadora">
+      <div class="calc-glow" aria-hidden="true"></div>
+      <Calculator />
     </section>
 
     <section id="privacidad" class="privacidad">
@@ -344,6 +350,25 @@
   .como h3 {
     font-size: 20px;
     font-weight: 600;
+  }
+
+  .calculadora {
+    position: relative;
+    padding-block: 56px 96px;
+    border-top: 1px solid var(--hairline);
+  }
+  .calc-glow {
+    position: absolute;
+    right: -10%;
+    top: 0;
+    width: 60%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--accent-soft), transparent);
+    pointer-events: none;
+  }
+  .calculadora > :global(:not(.calc-glow)) {
+    position: relative;
   }
 
   .privacidad {
