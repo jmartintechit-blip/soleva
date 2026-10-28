@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import Logo from '#lib/components/Logo.svelte';
   import Calculator from '#lib/components/web/Calculator.svelte';
   import HeroPreview from '#lib/components/web/HeroPreview.svelte';
@@ -66,6 +67,16 @@
     name="description"
     content="Apunta una vez cómo entra y sale tu dinero. Soleva mantiene tus saldos al día y te enseña dónde estarás dentro de 10 años. Sin conectar tu banco."
   />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Soleva · Tu patrimonio, en piloto automático" />
+  <meta
+    property="og:description"
+    content="Apunta una vez cómo entra y sale tu dinero y mira dónde estarás dentro de 10 años. Sin conectar tu banco."
+  />
+  <meta property="og:image" content="{page.url.origin}/og.png" />
+  <meta property="og:image:width" content="1280" />
+  <meta property="og:image:height" content="640" />
+  <meta name="twitter:card" content="summary_large_image" />
 </svelte:head>
 
 <div class="page">
@@ -161,7 +172,11 @@
           basadas en los supuestos que eliges.
         </p>
       </div>
-      <span class="body-sm sv-subtle">© 2026 Soleva</span>
+      <nav class="footer__links" aria-label="Legal">
+        <a class="link" href="/aviso-legal">Aviso legal</a>
+        <a class="link" href="/privacidad">Privacidad</a>
+        <span class="sv-subtle">© 2026 Soleva</span>
+      </nav>
     </footer>
   </div>
 </div>
@@ -425,6 +440,13 @@
     gap: 24px;
     padding-block: 32px 48px;
     border-top: 1px solid var(--line);
+  }
+  .footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 16px;
+    font-size: 13px;
   }
   .footer__brand {
     display: flex;
