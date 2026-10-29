@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { EMAIL, resetUser, signIn, sql } from './auth.ts';
+import { EMAIL, hydrated, hydratedAfter, resetUser, signIn, sql } from './auth.ts';
 
 test('home and projection follow the accounts and rules, live', async ({ page }) => {
   // Pages that vite dev compiles cold in CI.
@@ -22,7 +22,7 @@ test('home and projection follow the accounts and rules, live', async ({ page })
   await expect(page.getByText(/En 10 años: ~/)).toBeVisible();
 
   await page.goto('/proyeccion');
-  await page.waitForLoadState('networkidle');
+  await hydrated(page);
   const value = page.locator('.value');
   await expect(value).not.toHaveText('0 €');
   await expect(page.getByText(/Estimación, no asesoramiento/)).toBeVisible();
@@ -30,17 +30,11 @@ test('home and projection follow the accounts and rules, live', async ({ page })
   await page.getByRole('button', { name: /Optimista/ }).click();
   await expect(value).not.toHaveText(base!);
 
-  await page.getByRole('button', { name: 'Fijar como mi plan' }).click();
+  await hydratedAfter(page, () => page.getByRole('button', { name: 'Fijar como mi plan' }).click());
   await expect(page.getByText('Vas en camino')).toBeVisible();
-  await page.waitForLoadState('networkidle');
 
-  // The post reloads the page, and hydrating closes details opened a moment too early: retry,
-  // filling inside the retry so a late close cannot leave the field hidden.
-  const save = page.getByRole('button', { name: 'Guardar supuestos' });
-  await expect(async () => {
-    if (!(await save.isVisible())) await page.getByText(/Supuestos/).click();
-    await page.getByRole('textbox', { name: /^Base/ }).fill('9', { timeout: 1000 });
-    await save.click({ timeout: 1000 });
-  }).toPass();
+  await page.getByText(/Supuestos/).click();
+  await page.getByRole('textbox', { name: /^Base/ }).fill('9');
+  await page.getByRole('button', { name: 'Guardar supuestos' }).click();
   await expect(page.getByText('Ordénalos: prudente ≤ base ≤ optimista')).toBeVisible();
 });

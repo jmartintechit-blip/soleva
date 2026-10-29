@@ -16,6 +16,18 @@ export async function setCode(email: string, code: string) {
   expect(rows).toHaveLength(1);
 }
 
+// Interactive: the root layout marks <html data-hydrated> on mount. Before that, vite dev's late
+// hydration resets what a test typed or opened.
+export const hydrated = (page: Page) =>
+  expect(page.locator('html[data-hydrated]')).toBeAttached({ timeout: 30_000 });
+
+// For a form post that reloads the page: the mark is cleared first, so only the new page's counts.
+export async function hydratedAfter(page: Page, action: () => Promise<unknown>) {
+  await page.evaluate(() => delete document.documentElement.dataset.hydrated);
+  await action();
+  await hydrated(page);
+}
+
 // A clean start: deleting the user cascades to everything (confirmed closes can't be deleted alone).
 export const resetUser = () => sql()`delete from "user" where email = ${EMAIL}`;
 
@@ -23,8 +35,7 @@ export async function signIn(page: Page) {
   // The test branch is a copy of dev: earlier local runs may have used up the code limit.
   await sql()`delete from "rateLimit"`;
   await page.goto('/entrar');
-  // vite dev hydrates late and resets what was typed before.
-  await page.waitForLoadState('networkidle');
+  await hydrated(page);
   await page.getByLabel('Email').fill(EMAIL);
   await page.getByRole('button', { name: 'Enviarme el código' }).click();
   await expect(page.getByRole('heading', { name: 'Revisa tu email' })).toBeVisible();

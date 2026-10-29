@@ -7,10 +7,16 @@
   import '#lib/styles/tokens.css';
   import '#lib/styles/componentes.css';
   import '#lib/styles/base.css';
+  import { onMount } from 'svelte';
   import favicon from '#lib/assets/favicon.svg';
   import type { LayoutProps } from './$types';
 
   let { children }: LayoutProps = $props();
+
+  // A reliable "interactive now" signal for the E2E tests: onMount only runs once hydrated.
+  onMount(() => {
+    document.documentElement.dataset.hydrated = '';
+  });
 </script>
 
 <svelte:head>
