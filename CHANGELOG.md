@@ -4,6 +4,28 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.8.0] - 2026-10-30
+
+### Añadido
+
+- Base del libro de movimientos: cada cuenta tendrá su historial de ingresos, gastos, transferencias, compras, ventas, dividendos, intereses y ajustes, del que salen saldos y posiciones. Solo se añaden movimientos (un error se anula y se apunta de nuevo) y cada compra guarda su lote, para poder calcular por FIFO más adelante.
+- La base de datos garantiza que una transferencia entre cuentas propias suma cero y nunca cambia el patrimonio.
+- Instrumentos (ETF, fondos, acciones, ETC, cripto y productos sin precio público) con precios diarios, tipos de cambio del BCE y splits; cantidades con 8 decimales.
+- Reglas que generarán movimientos en su fecha: transferencias, ingresos, gastos y planes de inversión en varios productos, semanales a anuales.
+- Intereses por tramos con fin de promoción y retención, dividendos, deudas (sistema francés, fijas o con Euríbor), coche con las tablas de Hacienda y bienes con curva de depreciación.
+- Alertas e históricos diario y mensual.
+- Acceso a cada cuenta a través de una tabla de permisos (propietario, editor, lector), preparada para cuentas compartidas.
+- Paso de los datos actuales al libro sin perder nada (probado, se ejecutará al estrenar las pantallas nuevas).
+- La exportación incluye todo lo nuevo.
+
+### Cambiado
+
+- Escritorio: el contenido se centra y Cierre, mes cerrado, Inicio y Ajustes usan dos columnas.
+- Importes con decimales solo cuando no son cero, igual en toda la app.
+- Mes cerrado: botón «Corregir» visible en cada saldo. «Borrar mi cuenta» es un botón rojo, aparte y con confirmación.
+- Exportación en euros; el CSV usa «;» y coma decimal, como lo abre Excel en español.
+- El sol del logo se anima una sola vez al cargar la app.
+
 ## [0.7.0] - 2026-10-29
 
 ### Añadido

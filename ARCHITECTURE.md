@@ -29,9 +29,10 @@ navegador ──HTTPS──▶ Cloudflare Worker (SvelteKit)
 - **Sin contraseñas.** Workers Free da 10 ms de CPU por petición: un hash de contraseña no cabe. La entrada es por código de un solo uso.
 - **Límites en la base de datos.** El límite de intentos de Better Auth se guarda en Postgres porque un Worker no tiene memoria compartida entre peticiones.
 - **SQL a mano.** Sin ORM: la interfaz `Db` ejecuta SQL parametrizado; en los tests la implementa PGlite (Postgres en memoria), así que no hacen falta claves reales.
-- **Importes en céntimos enteros y porcentajes en puntos básicos** en base de datos, motor, API y exportación.
+- **Importes en céntimos enteros y porcentajes en puntos básicos** en base de datos, motor y API; la exportación los da en euros. Cantidades, precios y tipos de cambio como enteros ×10⁸ (`_e8`), con aritmética exacta.
+- **Libro de solo añadir.** Saldos y posiciones salen de `movement`; un error se anula (`voided_at`) y se apunta de nuevo. Triggers garantizan que una transferencia suma cero (el patrimonio no cambia) y que nada se edita por detrás, así que el FIFO fiscal es una consulta sobre el libro. Cada movimiento generado lleva una `occurrence_key` única: nunca dos veces.
 - **Lista de espera con doble confirmación.** Solo se guarda el hash del enlace; sin confirmar se borra a los 7 días y darse de baja borra la fila. Cerrada en producción hasta revisar los textos legales (`WAITLIST_OPEN`).
-- **Aislamiento por usuario.** Todo repositorio recibe el `userId` y filtra por él; lo ajeno responde 404.
+- **Aislamiento por usuario.** Todo repositorio recibe el `userId` y filtra por él; las cuentas, a través de `account_access` (propietario, editor, lector), lista para cuentas compartidas. Lo ajeno responde 404.
 
 ## Entornos
 

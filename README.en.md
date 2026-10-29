@@ -19,7 +19,7 @@ You note once how your money comes in and goes out (salary, contributions, fixed
 
 ## Features
 
-Today (blocks 0 to 6):
+Today (blocks 0 to 6, plus the base of block 8):
 
 - Public home page with a compound interest calculator in today's euros (3, 6 and 8 % scenarios, 2.5 % inflation).
 - Waitlist with consent and email double opt-in (open).
@@ -32,8 +32,9 @@ Today (blocks 0 to 6):
 - Month close: balances proposed from your rules, inline correction, confirmation, history with amendments and an email reminder.
 - Settings: three themes, reminder, export everything as JSON or CSV, end sessions and delete the account for real.
 - Horizonte dark design system with self-hosted fonts.
+- Ledger database (v0.8.0): movements, holdings, instruments, generating rules, interest, dividends, debts, car and goods, with no screens yet.
 
-Coming (MVP v0): screen-by-screen polish, accessibility, performance and an installable app.
+Coming before the beta: Soleva will keep track of your money on its own, movement by movement. You enter your situation once and every day it generates transfers, your plans' purchases, interest, payments and dividends, and values your holdings.
 
 ## Stack
 
@@ -63,7 +64,7 @@ npm run dev
 
 ## Status
 
-Under construction: blocks 0 to 6 of 7 of MVP v0 done (v0.7.0), deployed with sign-up closed and the waitlist open. See [CHANGELOG.md](CHANGELOG.md).
+Under construction: blocks 0 to 6 and 8 done (v0.8.0), deployed with sign-up closed and the waitlist open. Polish (block 7) moves to the end, on the new screens. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Roadmap
 
@@ -76,7 +77,13 @@ Under construction: blocks 0 to 6 of 7 of MVP v0 done (v0.7.0), deployed with si
 | 4 · Home and projection | Net worth, chart and editable assumptions                   |
 | 5 · Month close         | Proposal, correction, confirmation and history              |
 | 6 · Settings            | Themes, data export and account deletion                    |
-| 7 · Polish              | Accessibility, performance and installable app              |
+| 8 · Ledger              | Movement data model and moving the current data over        |
+| 9 · Daily engine        | Movements generated every day, interest, debts and alerts   |
+| 10 · Data               | Prices, exchange rates, Euribor and Hacienda's car tables   |
+| 11 · Core screens       | New Home, accounts with holdings, reconciling and alerts    |
+| 12 · Rules and products | Investment plans, debts, car and goods                      |
+| 13 · Projection v2      | Projection from rules, plans, debts and depreciation        |
+| 14 · Polish             | Accessibility, performance and installable app (was 7)      |
 
 ## Security
 

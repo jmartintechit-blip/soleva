@@ -19,7 +19,7 @@ Apuntas una vez cómo entra y sale tu dinero (nómina, aportaciones, gastos fijo
 
 ## Funcionalidades
 
-Hoy (bloques 0 a 6):
+Hoy (bloques 0 a 6, más la base del bloque 8):
 
 - Portada pública con calculadora de interés compuesto en euros de hoy (escenarios 3, 6 y 8 % e inflación 2,5 %).
 - Lista de espera con consentimiento y doble confirmación por email (abierta).
@@ -32,8 +32,9 @@ Hoy (bloques 0 a 6):
 - Cierre de mes: saldos propuestos por tus reglas, corrección en línea, confirmación, histórico con enmiendas y recordatorio por email.
 - Ajustes: tres temas, recordatorio, exportar todo en JSON o CSV, cerrar sesiones y borrar la cuenta de verdad.
 - Sistema de diseño Horizonte, oscuro, con fuentes alojadas en el propio sitio.
+- Base de datos del libro de movimientos (v0.8.0): movimientos, posiciones, instrumentos, reglas generadoras, intereses, dividendos, deudas, coche y bienes, todavía sin pantallas.
 
-En camino (MVP v0): pulido pantalla a pantalla, accesibilidad, rendimiento y app instalable.
+En camino antes de la beta: Soleva llevará el dinero sola, movimiento a movimiento. Metes tu situación una vez y cada día genera transferencias, compras de tus planes, intereses, cuotas y dividendos, y valora tus posiciones.
 
 ## Stack
 
@@ -63,7 +64,7 @@ npm run dev
 
 ## Estado
 
-En construcción: bloques 0 a 6 de 7 del MVP v0 cerrados (v0.7.0), desplegado con el registro cerrado y la lista de espera abierta. Ver [CHANGELOG.md](CHANGELOG.md).
+En construcción: bloques 0 a 6 y 8 cerrados (v0.8.0), desplegado con el registro cerrado y la lista de espera abierta. El pulido (bloque 7) pasa al final, sobre las pantallas nuevas. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Hoja de ruta
 
@@ -76,7 +77,13 @@ En construcción: bloques 0 a 6 de 7 del MVP v0 cerrados (v0.7.0), desplegado co
 | 4 · Inicio y proyección | Patrimonio, gráfico y supuestos editables                   |
 | 5 · Cierre de mes       | Propuesta, corrección, confirmación e histórico             |
 | 6 · Ajustes             | Temas, exportar datos y borrar cuenta                       |
-| 7 · Pulido              | Accesibilidad, rendimiento y app instalable                 |
+| 8 · Libro               | Modelo de datos de movimientos y paso de los datos actuales |
+| 9 · Motor diario        | Movimientos generados cada día, intereses, deudas y alertas |
+| 10 · Datos              | Precios, tipos de cambio, Euríbor y tablas de Hacienda      |
+| 11 · Pantallas núcleo   | Inicio nuevo, cuentas con posiciones, cuadre y alertas      |
+| 12 · Reglas y productos | Planes de inversión, deudas, coche y bienes                 |
+| 13 · Proyección v2      | Proyección desde reglas, planes, deudas y depreciaciones    |
+| 14 · Pulido             | Accesibilidad, rendimiento y app instalable (antes, 7)      |
 
 ## Seguridad
 
