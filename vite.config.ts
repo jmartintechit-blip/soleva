@@ -10,7 +10,7 @@ export default defineConfig({
         runes: ({ filename }) =>
           filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
       },
-      adapter: adapter(),
+      adapter: adapter({ config: 'kit.wrangler.jsonc' }),
       // Kit adds a nonce per response for its own inline scripts.
       // Inline style attributes (app.html, Svelte style:) need 'unsafe-inline' for styles.
       csp: {

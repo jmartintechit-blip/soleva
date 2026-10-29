@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "preview": "npm run build && wrangler dev .svelte-kit/cloudflare/_worker.js --port 4173",
+    "preview": "npm run build && wrangler dev --port 4173",
     "deploy": "npm run build && wrangler deploy",
     "prepare": "svelte-kit sync || echo \"\"",
     "gen": "wrangler types",
