@@ -1,0 +1,45 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { ASSUMPTIONS_BP } from '#lib/engine/compound.ts';
+import type { Db } from './db/index.ts';
+import { migrate } from './db/migrate.ts';
+import { createPgliteDb } from './db/pglite.ts';
+import { assumptionsInput, getSettings, saveAssumptions, saveBaseline } from './settings.ts';
+
+let db: Db;
+beforeEach(async () => {
+  db = createPgliteDb();
+  await migrate(db);
+  for (const id of ['ana', 'eva'])
+    await db.query(
+      `insert into "user" (id, name, email, "emailVerified") values ($1, '', $2, true)`,
+      [id, `${id}@example.com`],
+    );
+});
+afterEach(() => db.close());
+
+describe('settings', () => {
+  it('uses the defaults until saved, then keeps each user apart', async () => {
+    expect(await getSettings(db, 'ana')).toEqual({ assumptions: ASSUMPTIONS_BP, baseline: null });
+    const mine = { prudente: 200, base: 500, optimista: 700, inflation: 200 };
+    await saveAssumptions(db, 'ana', mine);
+    await saveBaseline(db, 'ana', { from: '2026-10', cents: [1, 2] });
+    expect(await getSettings(db, 'ana')).toEqual({
+      assumptions: mine,
+      baseline: { from: '2026-10', cents: [1, 2] },
+    });
+    expect((await getSettings(db, 'eva')).assumptions).toEqual(ASSUMPTIONS_BP);
+    await saveBaseline(db, 'ana', null);
+    expect((await getSettings(db, 'ana')).assumptions).toEqual(mine);
+    expect((await getSettings(db, 'ana')).baseline).toBeNull();
+  });
+
+  it('requires prudente ≤ base ≤ optimista', () => {
+    const r = assumptionsInput.safeParse({
+      prudente: 700,
+      base: 600,
+      optimista: 800,
+      inflation: 250,
+    });
+    expect(r.error?.issues[0]?.message).toBe('Ordénalos: prudente ≤ base ≤ optimista');
+  });
+});

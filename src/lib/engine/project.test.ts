@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ASSUMPTIONS_BP, futureValue } from './compound.ts';
 import {
+  baselineFrom,
   extraMonthly,
   oneOffExpense,
   pauseContributions,
+  plannedAt,
   project,
   projectScenarios,
   status,
@@ -112,5 +114,16 @@ describe('¿qué pasa si…?', () => {
     pauseContributions([fund], stored, '2026-11', 1);
     expect(stored).toEqual([saving]);
     expect(stored[0]!.pause).toBeUndefined();
+  });
+});
+
+describe('baseline', () => {
+  it('starts at net worth today and follows the plan in euros of each month', () => {
+    const points = project([fund], [saving], '2026-10', base, 24);
+    const b = baselineFrom(1_000_000, points, '2026-10');
+    expect(plannedAt(b, '2026-10')).toBe(1_000_000);
+    expect(plannedAt(b, '2027-10')).toBe(points[11]!.nominalCents);
+    expect(plannedAt(b, '2026-09')).toBeNull();
+    expect(plannedAt(b, '2028-11')).toBeNull();
   });
 });

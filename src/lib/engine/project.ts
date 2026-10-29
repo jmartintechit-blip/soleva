@@ -1,5 +1,5 @@
 import { ASSUMPTIONS_BP } from './compound.ts';
-import { type Month, addMonths } from './dates.ts';
+import { type Month, addMonths, monthsBetween } from './dates.ts';
 import { roundHalfAwayFromZero } from './money.ts';
 import {
   type Account,
@@ -154,4 +154,20 @@ export function oneOffExpense(
       active: true,
     },
   ];
+}
+
+// "My plan" fixed on a month: net worth that month and each month after, in euros of each month,
+// so it compares straight with the real balances later on.
+export interface Baseline {
+  from: Month;
+  cents: number[];
+}
+
+export function baselineFrom(nowCents: number, points: Point[], from: Month): Baseline {
+  return { from, cents: [nowCents, ...points.map((p) => p.nominalCents)] };
+}
+
+// Planned net worth for a month, or null outside the plan.
+export function plannedAt({ from, cents }: Baseline, m: Month): number | null {
+  return cents[monthsBetween(from, m)] ?? null;
 }
