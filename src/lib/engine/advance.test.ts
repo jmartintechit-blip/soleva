@@ -297,7 +297,7 @@ describe('advance', () => {
       gaps = [...gaps, ...advance(input, gaps, a, b)];
     const strip = (ms: Movement[]) =>
       ms
-        .map(({ seq: _seq, ...m }) => m)
+        .map((m) => ({ ...m, seq: 0 }))
         .sort((x, y) => (x.occurrenceKey ?? '').localeCompare(y.occurrenceKey ?? ''));
     expect(strip(gaps)).toEqual(strip(daily));
     expect(fold(daily).holdings.get(holdingKey('brk', 'world'))!.qtyE8).toBeGreaterThan(0n);
