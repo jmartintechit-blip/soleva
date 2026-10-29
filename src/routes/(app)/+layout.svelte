@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
+  import { invalidateAll } from '$app/navigation';
   import { page } from '$app/state';
+  import { THEMES } from '#lib/labels.ts';
   import Logo from '#lib/components/Logo.svelte';
   import type { LayoutProps } from './$types';
 
@@ -75,6 +78,31 @@
         </a>
       {/each}
     </nav>
+    <!-- Theme picker of the approved desktop screen; the same action as in Ajustes. -->
+    <!-- Only refresh the data: the default update would move to /ajustes, the action's page. -->
+    <form
+      class="themes"
+      method="POST"
+      action="/ajustes?/tema"
+      use:enhance={() =>
+        async ({ result }) => {
+          if (result.type === 'success') await invalidateAll();
+        }}
+    >
+      <span class="sv-muted">Tema</span>
+      <span class="dots" role="group" aria-label="Tema de color">
+        {#each THEMES as t (t.id)}
+          <button
+            name="theme"
+            value={t.id}
+            aria-pressed={data.theme === t.id}
+            aria-label="Tema {t.label}"
+            title={t.label}
+            style:--c={t.color}><span aria-hidden="true"></span></button
+          >
+        {/each}
+      </span>
+    </form>
     <form class="sv-sidebar__foot" method="POST" action="/salir">
       <button class="sv-btn sv-btn--ghost sv-btn--sm">Cerrar sesión</button>
     </form>
@@ -119,6 +147,49 @@
     color: inherit;
     text-decoration: none;
     padding: 0 12px;
+  }
+  .themes {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .themes + .sv-sidebar__foot {
+    margin-top: -18px;
+  }
+  .dots {
+    display: flex;
+    gap: 4px;
+  }
+  .dots button {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  .dots button span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+  .dots button[aria-pressed='true'] {
+    box-shadow: inset 0 0 0 1.5px var(--c);
+  }
+  .dots button[aria-pressed='true'] span {
+    box-shadow: 0 0 10px var(--c);
+  }
+  .dots button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   .sv-sidebar {
     display: none;

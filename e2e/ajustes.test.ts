@@ -16,15 +16,23 @@ test('settings: theme, reminder, export everything and delete the account for re
   await hydrated(page);
 
   // Theme: applied at once, painted by the server on reload, never on the public web.
-  await page.getByRole('button', { name: 'Crepúsculo' }).click();
+  await page.getByRole('button', { name: 'Crepúsculo', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'crepusculo');
-  await expect(page.getByRole('button', { name: 'Crepúsculo' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Crepúsculo', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
   const html = await (await page.request.get('/ajustes')).text();
   expect(html).toContain('data-theme="crepusculo"');
   expect(await (await page.request.get('/')).text()).toContain('data-theme="amanecer"');
+  // The same picker in the desktop sidebar.
+  await page.goto('/inicio');
+  await hydrated(page);
+  await page.getByRole('button', { name: 'Tema Rosé' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'rose');
+  await expect(page).toHaveURL(/inicio$/);
+  await page.goto('/ajustes');
+  await hydrated(page);
 
   // Reminder: off, day 15.
   await page.getByRole('switch', { name: /Avisarme por email/ }).uncheck();
