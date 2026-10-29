@@ -6,6 +6,7 @@ import {
   alerts,
   fingerprint,
   forecastCash,
+  handMade,
   moneyWeighted,
   outsideFlows,
   valuation,
@@ -274,6 +275,6 @@ describe('incremental cash forecast', () => {
     const after = forecastCash(input, h, [opening, gift], '2026-12-31', first);
     expect(after.fingerprint).not.toBe(first.fingerprint);
     expect(after.firstNegative).toEqual({});
-    expect(fingerprint(input, [opening])).toBe(first.fingerprint);
+    expect(fingerprint(input, handMade([opening]))).toBe(first.fingerprint);
   });
 });

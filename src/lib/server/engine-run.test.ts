@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Db } from './db/index.ts';
 import { migrate } from './db/migrate.ts';
 import { createPgliteDb } from './db/pglite.ts';
+import { addDays } from '#lib/engine/day.ts';
 import { runUser } from './engine-run.ts';
 
 let db: Db;
@@ -118,5 +119,34 @@ describe('runUser', () => {
         `select forecast->>'through' as through from engine_state where user_id = 'ana'`,
       ),
     ).toEqual([{ through: '2027-01-29' }]);
+  });
+
+  it('reads only the recent ledger day after day and leaves what reading it whole leaves', async () => {
+    await db.query(
+      `insert into price select $1, d::date, 11000000000, 'yahoo'
+      from generate_series('2026-11-02'::date, '2026-12-31', '1 day') d where extract(isodow from d) < 6`,
+      [world],
+    );
+    for (let d = '2026-11-01'; d <= '2026-12-15'; d = addDays(d, 1)) await runUser(db, 'ana', d);
+    const snapshot = () =>
+      Promise.all([
+        db.query(
+          `select account_id, instrument_id, qty_e8::text as q, cost_cents::text as c from position order by 1, 2`,
+        ),
+        db.query(
+          `select day::text as d, total_cents::text as t, flows_cents::text as f from user_day order by 1`,
+        ),
+        db.query(
+          `select account_id, month::text as m, value_cents::text as v from account_month order by 1, 2`,
+        ),
+        db.query(`select count(*)::int as n, sum(amount_cents)::text as s from movement`),
+      ]);
+    const compact = await snapshot();
+    // Forcing a whole read (as after a change by hand) on the same day changes nothing.
+    await db.query(
+      `update engine_state set updated_at = '2000-01-01', processed_through = '2026-12-14'`,
+    );
+    await runUser(db, 'ana', '2026-12-15');
+    expect(await snapshot()).toEqual(compact);
   });
 });

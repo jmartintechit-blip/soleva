@@ -11,7 +11,8 @@ import {
   valuation,
 } from '#lib/engine/insight.ts';
 import type { InterestTerms } from '#lib/engine/interest.ts';
-import { type Movement, fold } from '#lib/engine/ledger.ts';
+import { isPayDay } from '#lib/engine/interest.ts';
+import { type Movement, fold, holdingKey } from '#lib/engine/ledger.ts';
 import { reprice } from '#lib/engine/reconcile.ts';
 import { E8 } from '#lib/engine/units.ts';
 import type { Db } from './db/index.ts';
@@ -19,42 +20,158 @@ import type { Db } from './db/index.ts';
 const big = (v: unknown) => (v === null || v === undefined ? undefined : BigInt(v as string));
 const num = (v: unknown) => (v === null || v === undefined ? undefined : Number(v));
 
+// One query, one JSON text: the driver's per-row work was most of a run's CPU in Workers.
+async function movements(tx: Db, where: string, params: unknown[]) {
+  const [r] = await tx.query<{ j: string }>(
+    `select coalesce(json_agg(json_build_array(m.id, m.account_id, m.day, m.seq, m.kind,
+       m.amount_cents::text, m.instrument_id, m.qty_e8::text, m.price_e8::text, m.fx_e8::text,
+       m.withholding_cents::text, m.transfer_id, m.source, m.rule_id, m.occurrence_key,
+       m.provisional, m.voided_at is not null) order by m.day, m.seq, m.created_at, m.id), '[]')::text as j
+     from movement m where ${where}`,
+    params,
+  );
+  type Raw = [
+    string,
+    string,
+    string,
+    number,
+    Movement['kind'],
+    string,
+    string | null,
+    string | null,
+    string | null,
+    string | null,
+    string,
+    string | null,
+    Movement['source'],
+    string | null,
+    string | null,
+    boolean,
+    boolean,
+  ];
+  return (JSON.parse(r!.j) as Raw[]).map((x): Movement & { id: string } => ({
+    id: x[0],
+    accountId: x[1],
+    day: x[2],
+    seq: x[3],
+    kind: x[4],
+    amountCents: Number(x[5]),
+    instrumentId: x[6] ?? undefined,
+    qtyE8: big(x[7]),
+    priceE8: big(x[8]),
+    fxE8: big(x[9]),
+    withholdingCents: Number(x[10]),
+    transferId: x[11] ?? undefined,
+    source: x[12],
+    ruleId: x[13] ?? undefined,
+    occurrenceKey: x[14] ?? undefined,
+    provisional: x[15],
+    voided: x[16],
+  }));
+}
+
+const NOT_ESTIMATE = `not exists (select 1 from instrument i where i.id = m.instrument_id and i.kind = 'estimado')`;
+
+// The ledger a run needs. Whole, or (given `from`, when nothing was changed by hand since the last
+// run) compacted: each account's cash as one opening at the window start (the last interest
+// payment or the month start, whichever is earlier), the window's movements (units stripped up to
+// `from`), the holdings of the cache as stand-ins on `from`, and estimates whole (their value is
+// their contributions). The same results from a few hundred rows instead of years.
+async function loadLedger(
+  tx: Db,
+  ids: string[],
+  interest: Record<string, InterestTerms>,
+  from?: Day,
+) {
+  if (!from) {
+    const ledger = await movements(tx, `m.account_id = any($1)`, [ids]);
+    return {
+      ledger,
+      provisional: ledger.filter((m) => m.provisional && !m.voided),
+      standIns: new Map<string, Movement>(),
+    };
+  }
+  let start = addDays(`${monthOf(from)}-01`, -1);
+  for (const t of Object.values(interest)) {
+    let d = from;
+    for (let k = 0; k < 366 && !isPayDay(t, d); k++) d = addDays(d, -1);
+    if (d < start) start = d;
+  }
+  const openings = (
+    await tx.query<{ account_id: string; cash: string }>(
+      `select m.account_id, sum(m.amount_cents)::text as cash from movement m
+       where m.account_id = any($1) and m.day <= $2 and m.voided_at is null and ${NOT_ESTIMATE}
+       group by m.account_id`,
+      [ids, start],
+    )
+  ).map((r): Movement => ({
+    accountId: r.account_id,
+    day: start,
+    seq: -1,
+    kind: 'apertura',
+    amountCents: Number(r.cash),
+    source: 'motor',
+  }));
+  const window = await movements(tx, `m.account_id = any($1) and m.day > $2 and ${NOT_ESTIMATE}`, [
+    ids,
+    start,
+  ]);
+  const estimates = await movements(tx, `m.account_id = any($1) and not ${NOT_ESTIMATE}`, [ids]);
+  const standIns = new Map<string, Movement>();
+  const neutral: Movement[] = [];
+  for (const p of await tx.query<{
+    account_id: string;
+    instrument_id: string;
+    qty: string;
+    cost: string;
+  }>(
+    `select p.account_id, p.instrument_id, p.qty_e8::text as qty, p.cost_cents::text as cost
+     from position p join instrument i on i.id = p.instrument_id
+     where p.account_id = any($1) and i.kind <> 'estimado'`,
+    [ids],
+  )) {
+    const cost = Number(p.cost);
+    // A buy of what the cache holds, with its cost, and the cash it took given back.
+    standIns.set(holdingKey(p.account_id, p.instrument_id), {
+      accountId: p.account_id,
+      day: from,
+      seq: -1,
+      kind: 'compra',
+      amountCents: -cost,
+      instrumentId: p.instrument_id,
+      qtyE8: BigInt(p.qty),
+      priceE8: 1n,
+      source: 'motor',
+    });
+    neutral.push({
+      accountId: p.account_id,
+      day: from,
+      seq: -1,
+      kind: 'apertura',
+      amountCents: cost,
+      source: 'motor',
+    });
+  }
+  const stripped = window.map((m) =>
+    m.day <= from && m.qtyE8 !== undefined
+      ? { ...m, instrumentId: undefined, qtyE8: undefined }
+      : m,
+  );
+  return {
+    ledger: [...openings, ...stripped, ...neutral, ...standIns.values(), ...estimates],
+    provisional: window.filter((m) => m.provisional && !m.voided),
+    standIns,
+  };
+}
+
 // Everything the engine needs about one user, read once inside the run's transaction.
-export async function loadUser(tx: Db, userId: string) {
+export async function loadUser(tx: Db, userId: string, from?: Day) {
   const accounts = await tx.query<{ id: string; kind: AccountKind }>(
     `select a.id, a.kind from money_account a join account_access x on x.account_id = a.id
      where x.user_id = $1 and x.role = 'propietario' order by a.created_at, a.id`,
     [userId],
   );
   const ids = accounts.map((a) => a.id);
-  const rows = await tx.query(
-    `select id, account_id, day::text as day, seq, kind, amount_cents::text as amount, instrument_id,
-       qty_e8::text as qty, price_e8::text as price, fx_e8::text as fx, fee_cents::text as fee,
-       withholding_cents::text as withheld, transfer_id, source, rule_id, occurrence_key,
-       provisional, voided_at is not null as voided
-     from movement where account_id = any($1) order by day, seq, created_at, id`,
-    [ids],
-  );
-  const ledger = rows.map((r): Movement & { id: string } => ({
-    id: r.id as string,
-    accountId: r.account_id as string,
-    day: r.day as string,
-    seq: r.seq as number,
-    kind: r.kind as Movement['kind'],
-    amountCents: Number(r.amount),
-    instrumentId: (r.instrument_id as string) ?? undefined,
-    qtyE8: big(r.qty),
-    priceE8: big(r.price),
-    fxE8: big(r.fx),
-    feeCents: num(r.fee),
-    withholdingCents: num(r.withheld),
-    transferId: (r.transfer_id as string) ?? undefined,
-    source: r.source as Movement['source'],
-    ruleId: (r.rule_id as string) ?? undefined,
-    occurrenceKey: (r.occurrence_key as string) ?? undefined,
-    provisional: r.provisional as boolean,
-    voided: r.voided as boolean,
-  }));
 
   const ruleRows = await tx.query(
     `select r.id, r.kind, r.frequency, r.day, r.start_on::text as start_on, r.end_on::text as end_on,
@@ -149,6 +266,8 @@ export async function loadUser(tx: Db, userId: string) {
       payerAccountId: (r.payer_account_id as string) ?? undefined,
     };
 
+  const { ledger, provisional, standIns } = await loadLedger(tx, ids, interest, from);
+
   // Instruments in play: held, moved or bought by a plan.
   const used = new Set([
     ...ledger.flatMap((m) => (m.instrumentId ? [m.instrumentId] : [])),
@@ -235,7 +354,7 @@ export async function loadUser(tx: Db, userId: string) {
 
   const input: EngineInput = { rules, interest, dividends, debts, market };
   const holdings: Holdings = { accounts, instruments, estimates, vehicles, assets, market };
-  return { ledger, input, holdings };
+  return { ledger, provisional, standIns, input, holdings };
 }
 
 function latest(list: { day: Day; priceE8: bigint }[] | undefined, day: Day) {
@@ -255,43 +374,66 @@ function latest(list: { day: Day; priceE8: bigint }[] | undefined, day: Day) {
 export async function runUser(db: Db, userId: string, today: Day) {
   return db.transaction(async (tx) => {
     await tx.query(`select pg_advisory_xact_lock(hashtext($1))`, [userId]);
-    const [state] = await tx.query<{ through: string; forecast: Forecast | null }>(
-      `select processed_through::text as through, forecast from engine_state where user_id = $1`,
+    const [state] = await tx.query<{
+      through: string;
+      forecast: Forecast | null;
+      touched: boolean;
+      hand: string;
+    }>(
+      `select s.processed_through::text as through, s.forecast,
+         -- Anything entered or voided by hand since the last run: then the whole ledger is read.
+         exists (select 1 from movement m join account_access x on x.account_id = m.account_id
+                 where x.user_id = s.user_id and x.role = 'propietario'
+                   and (m.created_at > s.updated_at or m.voided_at > s.updated_at)) as touched,
+         (select md5(coalesce(string_agg(m.account_id || m.day || m.amount_cents || (m.voided_at is not null),
+                  ',' order by m.id), ''))
+          from movement m join account_access x on x.account_id = m.account_id
+          where x.user_id = s.user_id and x.role = 'propietario'
+            and (m.source not in ('regla', 'motor') or m.voided_at is not null)) as hand
+       from engine_state s where s.user_id = $1`,
       [userId],
     );
     if (!state) return null;
-    const { ledger, input, holdings } = await loadUser(tx, userId);
     const from = state.through < today ? state.through : today;
+    const compact = !state.touched && state.forecast !== null;
+    const { ledger, provisional, standIns, input, holdings } = await loadUser(
+      tx,
+      userId,
+      compact ? from : undefined,
+    );
 
     const fresh = advance(input, ledger, from, today);
-    for (const m of fresh)
+    const col = <T>(f: (m: Movement) => T) => fresh.map(f);
+    if (fresh.length)
       await tx.query(
         `insert into movement (account_id, day, seq, kind, amount_cents, instrument_id, qty_e8, price_e8,
            fx_e8, withholding_cents, transfer_id, source, rule_id, occurrence_key, provisional)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         select * from unnest($1::text[], $2::date[], $3::int[], $4::text[], $5::bigint[], $6::text[],
+           $7::bigint[], $8::bigint[], $9::bigint[], $10::bigint[], $11::text[], $12::text[], $13::text[],
+           $14::text[], $15::boolean[])
          on conflict (occurrence_key) where occurrence_key is not null do nothing`,
         [
-          m.accountId,
-          m.day,
-          m.seq,
-          m.kind,
-          m.amountCents,
-          m.instrumentId ?? null,
-          m.qtyE8?.toString() ?? null,
-          m.priceE8?.toString() ?? null,
-          m.fxE8?.toString() ?? null,
-          m.withholdingCents ?? 0,
-          m.transferId ?? null,
-          m.source,
-          m.ruleId ?? null,
-          m.occurrenceKey ?? null,
-          m.provisional ?? false,
+          col((m) => m.accountId),
+          col((m) => m.day),
+          col((m) => m.seq),
+          col((m) => m.kind),
+          col((m) => m.amountCents),
+          col((m) => m.instrumentId ?? null),
+          col((m) => m.qtyE8?.toString() ?? null),
+          col((m) => m.priceE8?.toString() ?? null),
+          col((m) => m.fxE8?.toString() ?? null),
+          col((m) => m.withholdingCents ?? 0),
+          col((m) => m.transferId ?? null),
+          col((m) => m.source),
+          col((m) => m.ruleId ?? null),
+          col((m) => m.occurrenceKey ?? null),
+          col((m) => m.provisional ?? false),
         ],
       );
 
     // Provisional buys whose own day's close is now published.
     let repriced = 0;
-    for (const m of ledger.filter((m) => m.provisional && !m.voided)) {
+    for (const m of provisional) {
       const q = input.market.close(m.instrumentId!, m.day);
       const fx = input.market.perEur(input.market.currency(m.instrumentId!), m.day);
       if (q?.day !== m.day || !fx) continue;
@@ -300,45 +442,66 @@ export async function runUser(db: Db, userId: string, today: Day) {
         `update movement set price_e8 = $2, fx_e8 = $3, qty_e8 = $4, provisional = false where id = $1`,
         [m.id, r.priceE8!.toString(), r.fxE8!.toString(), r.qtyE8!.toString()],
       );
-      Object.assign(m, r);
+      // Compacted, the cache's stand-in holds the old units; whole, the movement itself does.
+      const standIn = standIns.get(holdingKey(m.accountId, m.instrumentId!));
+      if (standIn) standIn.qtyE8! += r.qtyE8! - m.qtyE8!;
+      else Object.assign(m, r);
       repriced++;
     }
 
     const all = [...ledger, ...fresh];
     const ids = holdings.accounts.map((a) => a.id);
     await tx.query(`delete from position where account_id = any($1)`, [ids]);
-    for (const [key, h] of fold(all).holdings) {
-      if (h.qtyE8 <= 0n) continue;
-      const [account, instrument] = key.split('|');
-      await tx.query(
-        `insert into position (account_id, instrument_id, qty_e8, cost_cents) values ($1, $2, $3, $4)`,
-        [account, instrument, h.qtyE8.toString(), Math.max(0, h.costCents)],
-      );
-    }
+    const held = [...fold(all).holdings].filter(([, h]) => h.qtyE8 > 0n);
+    await tx.query(
+      `insert into position (account_id, instrument_id, qty_e8, cost_cents)
+       select * from unnest($1::text[], $2::text[], $3::bigint[], $4::bigint[])`,
+      [
+        held.map(([k]) => k.split('|')[0]),
+        held.map(([k]) => k.split('|')[1]),
+        held.map(([, h]) => h.qtyE8.toString()),
+        held.map(([, h]) => Math.max(0, h.costCents)),
+      ],
+    );
 
-    // History: today's value always (prices move), and each day the run went through.
+    // History: each day the run went through (today too, as prices move), and each account at the
+    // end of every month it crossed.
+    const days: [Day, number, number][] = [];
+    const months: [string, string, number, number][] = [];
     for (const d of new Set([...daysAfter(from, today), today])) {
       const v = valuation(holdings, all, d);
       const flows = outsideFlows(all, addDays(d, -1), d).reduce((s, m) => s + m.amountCents, 0);
-      await tx.query(
-        `insert into user_day (user_id, day, total_cents, flows_cents) values ($1, $2, $3, $4)
-         on conflict (user_id, day) do update set total_cents = excluded.total_cents, flows_cents = excluded.flows_cents`,
-        [userId, d, v.total, flows],
-      );
-      if (monthOf(addDays(d, 1)) !== monthOf(d) || d === today)
+      days.push([d, v.total, flows]);
+      if (monthOf(addDays(d, 1)) !== monthOf(d))
         for (const [account, value] of Object.entries(v.byAccount)) {
           const own = all.filter((m) => m.accountId === account);
-          const monthFlows = outsideFlows(own, addDays(`${monthOf(d)}-01`, -1), d).reduce(
-            (s, m) => s + m.amountCents,
-            0,
-          );
-          await tx.query(
-            `insert into account_month (account_id, month, value_cents, flows_cents) values ($1, $2, $3, $4)
-             on conflict (account_id, month) do update set value_cents = excluded.value_cents, flows_cents = excluded.flows_cents`,
-            [account, `${monthOf(d)}-01`, value, monthFlows],
-          );
+          const monthFlows = outsideFlows(own, addDays(`${monthOf(d)}-01`, -1), d);
+          months.push([
+            account,
+            `${monthOf(d)}-01`,
+            value,
+            monthFlows.reduce((s, m) => s + m.amountCents, 0),
+          ]);
         }
     }
+    await tx.query(
+      `insert into user_day (user_id, day, total_cents, flows_cents)
+       select $1, * from unnest($2::date[], $3::bigint[], $4::bigint[])
+       on conflict (user_id, day) do update set total_cents = excluded.total_cents, flows_cents = excluded.flows_cents`,
+      [userId, days.map((x) => x[0]), days.map((x) => x[1]), days.map((x) => x[2])],
+    );
+    if (months.length)
+      await tx.query(
+        `insert into account_month (account_id, month, value_cents, flows_cents)
+         select * from unnest($1::text[], $2::date[], $3::bigint[], $4::bigint[])
+         on conflict (account_id, month) do update set value_cents = excluded.value_cents, flows_cents = excluded.flows_cents`,
+        [
+          months.map((x) => x[0]),
+          months.map((x) => x[1]),
+          months.map((x) => x[2]),
+          months.map((x) => x[3]),
+        ],
+      );
 
     const { alerts: found, forecast } = alerts(
       input,
@@ -346,14 +509,22 @@ export async function runUser(db: Db, userId: string, today: Day) {
       all,
       today,
       state.forecast ?? undefined,
+      state.hand,
     );
-    for (const a of found)
-      await tx.query(
-        `insert into alert (user_id, kind, account_id, instrument_id, day, dedupe_key) values ($1, $2, $3, $4, $5, $6)
-         on conflict (user_id, dedupe_key) do update set day = excluded.day,
-           state = case when alert.state = 'resuelta' then 'abierta' else alert.state end`,
-        [userId, a.kind, a.accountId ?? null, a.instrumentId ?? null, a.day, a.key],
-      );
+    await tx.query(
+      `insert into alert (user_id, kind, account_id, instrument_id, day, dedupe_key)
+       select $1, * from unnest($2::text[], $3::text[], $4::text[], $5::date[], $6::text[])
+       on conflict (user_id, dedupe_key) do update set day = excluded.day,
+         state = case when alert.state = 'resuelta' then 'abierta' else alert.state end`,
+      [
+        userId,
+        found.map((a) => a.kind),
+        found.map((a) => a.accountId ?? null),
+        found.map((a) => a.instrumentId ?? null),
+        found.map((a) => a.day),
+        found.map((a) => a.key),
+      ],
+    );
     await tx.query(
       `update alert set state = 'resuelta' where user_id = $1 and state <> 'resuelta' and not (dedupe_key = any($2))`,
       [userId, found.map((a) => a.key)],

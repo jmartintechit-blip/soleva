@@ -135,7 +135,14 @@ export function valuation(h: Holdings, ledger: readonly Movement[], day: Day) {
 export const OUTSIDE: Movement['kind'][] = ['apertura', 'ingreso', 'gasto', 'ajuste'];
 export const outsideFlows = (ledger: readonly Movement[], from: Day, to: Day) =>
   ledger.filter(
-    (m) => !m.voided && m.day > from && m.day <= to && OUTSIDE.includes(m.kind) && !m.instrumentId,
+    (m) =>
+      !m.voided &&
+      m.day > from &&
+      m.day <= to &&
+      OUTSIDE.includes(m.kind) &&
+      !m.instrumentId &&
+      // The engine never opens an account: an 'apertura' of its own is a stand-in for history.
+      !(m.kind === 'apertura' && m.source === 'motor'),
   );
 
 // Money-weighted return between two values: the yearly rate r that makes what was there at the
@@ -208,12 +215,16 @@ export interface Forecast {
 
 // What the forecast depends on besides the calendar: the rules and settings, and every movement
 // the engine did not make itself (by hand, a reconciliation, an opening, a void).
-export function fingerprint(input: EngineInput, ledger: readonly Movement[]): string {
-  const own = ledger
+// The server sums the hand-made part up in SQL; `handMade` does it from a ledger in memory.
+export const handMade = (ledger: readonly Movement[]) =>
+  ledger
     .filter((m) => m.voided || !['regla', 'motor'].includes(m.source))
-    .map((m) => `${m.accountId}${m.day}${m.amountCents}${m.voided ? 'v' : ''}`);
+    .map((m) => `${m.accountId}${m.day}${m.amountCents}${m.voided ? 'v' : ''}`)
+    .join(',');
+
+export function fingerprint(input: EngineInput, hand: string): string {
   const text = JSON.stringify(
-    [input.rules, input.interest, input.debts, input.dividends, own],
+    [input.rules, input.interest, input.debts, input.dividends, hand],
     (_, v) => (typeof v === 'bigint' ? v.toString() : v),
   );
   // FNV-1a, twice with different seeds: a short, stable id for a long text.
@@ -257,8 +268,9 @@ export function forecastCash(
   ledger: readonly Movement[],
   today: Day,
   prior?: Forecast,
+  hand = handMade(ledger),
 ): Forecast {
-  const print = fingerprint(input, ledger);
+  const print = fingerprint(input, hand);
   const horizon = addDays(today, 60);
   if (prior?.fingerprint === print && prior.through >= today) {
     const kept = Object.fromEntries(
@@ -287,6 +299,7 @@ export function alerts(
   ledger: readonly Movement[],
   today: Day,
   prior?: Forecast,
+  hand?: string,
 ): { alerts: Alert[]; forecast: Forecast } {
   const out: Alert[] = [];
   const live = input.rules.filter((r) => r.active);
@@ -308,7 +321,7 @@ export function alerts(
       });
   }
 
-  const forecast = forecastCash(input, h, ledger, today, prior);
+  const forecast = forecastCash(input, h, ledger, today, prior, hand);
   for (const [account, day] of Object.entries(forecast.firstNegative))
     out.push({ kind: 'sin_saldo', day, accountId: account, key: `sin_saldo:${account}` });
 
