@@ -112,6 +112,13 @@ describe('runUser', () => {
     // 1 transfer (2 legs), 5 Mondays and November's interest on the savings account.
     expect(await count(`from movement where source in ('regla', 'motor')`)).toBe(2 + 5 + 1);
     expect(await count(`from user_day where user_id = 'ana'`)).toBe(30);
+    // Each account's value and own flows per day: the transfer of 1 November is a flow of both.
+    expect(
+      await db.query(
+        `select accounts->$1->>1 as rem, accounts->$2->>1 as brk from user_day where day = '2026-11-01'`,
+        [acc.rem, acc.brk],
+      ),
+    ).toEqual([{ rem: '-100000', brk: '100000' }]);
     expect(await count(`from account_month where month = '2026-11-01'`)).toBe(2);
     // The cash forecast is kept for the next run, 60 days ahead.
     expect(

@@ -6,6 +6,7 @@ import {
   type Forecast,
   type Holdings,
   type InstrumentKind,
+  accountFlows,
   alerts,
   outsideFlows,
   valuation,
@@ -469,12 +470,16 @@ export async function runUser(db: Db, userId: string, today: Day) {
 
     // History: each day the run went through (today too, as prices move), and each account at the
     // end of every month it crossed.
-    const days: [Day, number, number][] = [];
+    const days: [Day, number, number, string][] = [];
     const months: [string, string, number, number][] = [];
     for (const d of new Set([...daysAfter(from, today), today])) {
       const v = valuation(holdings, all, d);
       const flows = outsideFlows(all, addDays(d, -1), d).reduce((s, m) => s + m.amountCents, 0);
-      days.push([d, v.total, flows]);
+      const own = accountFlows(all, addDays(d, -1), d);
+      const perAccount = Object.fromEntries(
+        Object.entries(v.byAccount).map(([a, value]) => [a, [value, own[a] ?? 0]]),
+      );
+      days.push([d, v.total, flows, JSON.stringify(perAccount)]);
       if (monthOf(addDays(d, 1)) !== monthOf(d))
         for (const [account, value] of Object.entries(v.byAccount)) {
           const own = all.filter((m) => m.accountId === account);
@@ -525,10 +530,10 @@ export async function runUser(db: Db, userId: string, today: Day) {
            where k.a = p.account_id and k.i = p.instrument_id)
          returning 1),
        ud as (
-         insert into user_day (user_id, day, total_cents, flows_cents)
-         select $25, * from unnest($26::date[], $27::bigint[], $28::bigint[])
-         on conflict (user_id, day) do update
-           set total_cents = excluded.total_cents, flows_cents = excluded.flows_cents
+         insert into user_day (user_id, day, total_cents, flows_cents, accounts)
+         select $25, * from unnest($26::date[], $27::bigint[], $28::bigint[], $40::jsonb[])
+         on conflict (user_id, day) do update set total_cents = excluded.total_cents,
+           flows_cents = excluded.flows_cents, accounts = excluded.accounts
          returning 1),
        am as (
          insert into account_month (account_id, month, value_cents, flows_cents)
@@ -588,6 +593,7 @@ export async function runUser(db: Db, userId: string, today: Day) {
         col(found, (a) => a.key),
         today,
         JSON.stringify(forecast),
+        col(days, (x) => x[3]),
       ],
     );
     return { generated: fresh.length, repriced: repriced.length, alerts: found.length };

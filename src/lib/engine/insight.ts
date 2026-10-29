@@ -145,6 +145,25 @@ export const outsideFlows = (ledger: readonly Movement[], from: Day, to: Day) =>
       !(m.kind === 'apertura' && m.source === 'motor'),
   );
 
+// What came into or left one account that its money did not make: the outside flows plus what
+// moved between own accounts (a transfer, a debt payment's principal). Per account, a transfer in
+// is never a gain.
+const ACCOUNT_FLOWS: Movement['kind'][] = [...OUTSIDE, 'transferencia', 'amortizacion'];
+export function accountFlows(ledger: readonly Movement[], from: Day, to: Day) {
+  const out: Record<string, number> = {};
+  for (const m of ledger)
+    if (
+      !m.voided &&
+      m.day > from &&
+      m.day <= to &&
+      ACCOUNT_FLOWS.includes(m.kind) &&
+      !m.instrumentId &&
+      !(m.kind === 'apertura' && m.source === 'motor')
+    )
+      out[m.accountId] = (out[m.accountId] ?? 0) + m.amountCents;
+  return out;
+}
+
 // Money-weighted return between two values: the yearly rate r that makes what was there at the
 // start plus every flow worth what is there at the end (IRR, by Newton with bisection to fall
 // back on), and that rate over the period's own length.
