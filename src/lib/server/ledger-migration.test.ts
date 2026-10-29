@@ -68,6 +68,7 @@ describe('migrateUserToLedger', () => {
       type: 'entra',
       frequency: 'mensual',
       amountCents: 150_000,
+      fromAccountId: undefined,
       toAccountId: cash,
     });
     await createRule(db, 'ana', {
@@ -88,6 +89,7 @@ describe('migrateUserToLedger', () => {
       startMonth: '2027-02',
       amountCents: 40_000,
       fromAccountId: cash,
+      toAccountId: undefined,
       active: false,
     });
     await confirmClose(db, 'ana', '2026-10', {
