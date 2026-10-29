@@ -365,3 +365,29 @@ describe('valuation', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('insight', () => {
+  it('keeps one alert per thing, and history goes with its user', async () => {
+    const alert = `insert into alert (user_id, kind, day, dedupe_key)
+      values ('ana', 'plan_supera', '2026-11-03', 'plan_supera:r1')`;
+    await db.query(alert);
+    await expect(db.query(alert)).rejects.toThrow();
+    await expect(
+      db.query(
+        `insert into alert (user_id, kind, day, dedupe_key) values ('ana', 'compra', '2026-11-03', 'x')`,
+      ),
+    ).rejects.toThrow();
+    await db.query(`insert into user_day values ('ana', '2026-11-03', 1_350_037, 0)`);
+    const [{ id }] = await db.query<{ id: string }>(
+      `insert into money_account (user_id, name, kind, balance_cents) values ('ana', 'B', 'efectivo', 0)
+       returning id`,
+    );
+    await db.query(`insert into account_month values ($1, '2026-10-01', 320_000, 0)`, [id]);
+    await expect(
+      db.query(`insert into account_month values ($1, '2026-10-02', 1, 0)`, [id]),
+    ).rejects.toThrow();
+    await db.query(`delete from "user" where id = 'ana'`);
+    for (const t of ['alert', 'user_day', 'account_month'])
+      expect(await db.query(`select 1 from ${t}`)).toEqual([]);
+  });
+});
