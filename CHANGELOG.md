@@ -4,6 +4,16 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.6.0] - 2026-10-29
+
+### Añadido
+
+- Cierre de mes: Soleva propone los saldos a partir de tus reglas e intereses; los corriges en línea y confirmas todo de una vez, con el conteo desde el mes anterior.
+- Un mes cerrado no se edita: cada corrección posterior queda como enmienda con su motivo y el saldo anterior, también en base de datos (triggers).
+- Histórico de meses cerrados con su detalle y sus enmiendas.
+- Inicio: evolución del patrimonio de los últimos 12 meses, cambio desde el último cierre y acceso «Cierra {mes}».
+- Recordatorio por email el día del mes que toque (por defecto el 1), una sola vez por mes abierto, desde un cron diario.
+
 ## [0.5.0] - 2026-10-29
 
 ### Añadido
