@@ -4,6 +4,23 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.10.0] - 2026-10-30
+
+### Añadido
+
+- Datos de mercado detrás de un único adaptador: cierres diarios de bolsa, tipos de cambio de referencia del BCE y Euríbor oficial mensual del Banco de España, con caché, reintentos y precio manual de respaldo.
+- Buscador de instrumentos por nombre, ISIN o ticker, en el orden de la búsqueda, sin rankings propios.
+- Ejecución diaria: el cron de las 07:00 actualiza los datos compartidos y encola una tarea por usuario; cada una genera lo que toca, recoloca compras provisionales, guarda el histórico y abre o resuelve alertas.
+- Tablas de Hacienda de 2026 (Orden HAC/1501/2025): 62.663 modelos de coche y moto y los porcentajes por años de uso, con un comando anual para cargar la orden de cada año.
+
+### Cambiado
+
+- Las alertas y la lectura de datos son incrementales: cada ejecución solo recalcula lo que ha cambiado desde la anterior. En Workers, un usuario de 80 cuentas pasa de 272–393 ms a 55–126 ms de CPU por día.
+
+### Corregido
+
+- Dos tests intermitentes, en su causa: el E2E de Ajustes fallaba si quedaba un código de acceso sin usar, y el test de migraciones superaba el tiempo límite en el CI.
+
 ## [0.9.0] - 2026-10-30
 
 ### Añadido
