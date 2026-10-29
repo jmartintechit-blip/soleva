@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { toE8 } from '#lib/engine/units.ts';
 import { parseEcb } from './ecb.ts';
 import { marketstack } from './marketstack.ts';
-import { mobula } from './mobula.ts';
 import { fetchRetry } from './provider.ts';
 import { parseChart, yahoo } from './yahoo.ts';
 
@@ -75,7 +74,7 @@ describe('fetchRetry', () => {
   });
 });
 
-describe('ecb, mobula and marketstack', () => {
+describe('ecb and marketstack', () => {
   it('reads the ECB rates as units per euro', () => {
     const csv = `KEY,FREQ,CURRENCY,CURRENCY_DENOM,EXR_TYPE,EXR_SUFFIX,TIME_PERIOD,OBS_VALUE
 EXR.D.USD.EUR.SP00.A,D,USD,EUR,SP00,A,2026-10-29,1.113
@@ -85,18 +84,6 @@ EXR.D.RUB.EUR.SP00.A,D,RUB,EUR,SP00,A,2026-10-29,NaN`;
       { currency: 'USD', day: '2026-10-29', perEurE8: toE8('1.113') },
       { currency: 'GBP', day: '2026-10-29', perEurE8: toE8('0.83578') },
     ]);
-  });
-
-  it('sends the Mobula key and reads the price in dollars', async () => {
-    let auth = '';
-    const p = mobula('k', async (_url, init) => {
-      auth = new Headers(init?.headers).get('authorization')!;
-      return Response.json({ data: { price: 3612.123456789 } });
-    });
-    const s = await p.closes('ethereum');
-    expect(auth).toBe('k');
-    expect(s.currency).toBe('USD');
-    expect(s.closes[0]!.priceE8).toBe(toE8('3612.123457'));
   });
 
   it('reads Marketstack end-of-day bars oldest first', async () => {

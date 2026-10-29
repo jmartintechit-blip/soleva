@@ -42,10 +42,11 @@ describe('daily', () => {
     ).toEqual([{ d: '2026-11-09' }]);
   });
 
-  it('turns on Mobula and Marketstack only with their keys', () => {
+  it('turns on Marketstack only with its key', () => {
     expect(Object.keys(marketDeps({}).providers)).toEqual(['yahoo']);
-    expect(
-      Object.keys(marketDeps({ MOBULA_API_KEY: 'k', MARKETSTACK_API_KEY: 'm' }).providers),
-    ).toEqual(['yahoo', 'mobula', 'marketstack']);
+    expect(Object.keys(marketDeps({ MARKETSTACK_API_KEY: 'm' }).providers)).toEqual([
+      'yahoo',
+      'marketstack',
+    ]);
   });
 });

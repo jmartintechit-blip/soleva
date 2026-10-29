@@ -9,10 +9,11 @@ export interface MarketDeps {
   fetch?: Fetch;
 }
 
-// The last weekday before `today`: its close is final by the 07:00 cron (bars of today are not).
-export function lastClosedDay(today: Day): Day {
+// The last finished day before `today` (its close is final by the 07:00 cron, today's bar is not):
+// a weekday for markets, any day for crypto, which trades all week.
+export function lastClosedDay(today: Day, crypto = false): Day {
   let d = addDays(today, -1);
-  while (isWeekend(d)) d = addDays(d, -1);
+  while (!crypto && isWeekend(d)) d = addDays(d, -1);
   return d;
 }
 
@@ -40,18 +41,24 @@ export async function refreshRates(db: Db, f: Fetch = fetch) {
 // stale; its holders see the alert and can enter the price by hand.
 export async function refreshPrices(db: Db, deps: MarketDeps, today: Day, limit = 40) {
   const closed = lastClosedDay(today);
-  const due = await db.query<{ id: string; source: PriceProvider['name']; symbol: string }>(
-    `select i.id, i.price_source as source, i.source_id as symbol
+  const cryptoClosed = lastClosedDay(today, true);
+  const due = await db.query<{
+    id: string;
+    source: PriceProvider['name'];
+    symbol: string;
+    crypto: boolean;
+  }>(
+    `select i.id, i.price_source as source, i.source_id as symbol, i.kind = 'cripto' as crypto
      from instrument i
      left join lateral (select max(day) as last from price p where p.instrument_id = i.id) p on true
-     where i.owner_user_id is null and i.price_source in ('yahoo', 'mobula', 'marketstack')
+     where i.owner_user_id is null and i.price_source in ('yahoo', 'marketstack')
        and (exists (select 1 from position x where x.instrument_id = i.id and x.qty_e8 > 0)
             or exists (select 1 from auto_rule_leg l join auto_rule r on r.id = l.rule_id
                        where l.instrument_id = i.id and r.active))
-       and (p.last is null or p.last < case when i.price_source = 'mobula' then $1::date else $2::date end)
+       and (p.last is null or p.last < case when i.kind = 'cripto' then $1::date else $2::date end)
      order by p.last nulls first, i.id
      limit $3`,
-    [today, closed, limit + 1],
+    [cryptoClosed, closed, limit + 1],
   );
   const failed: string[] = [];
   let stored = 0;
@@ -60,8 +67,8 @@ export async function refreshPrices(db: Db, deps: MarketDeps, today: Day, limit 
     try {
       if (!provider) throw new Error(`${i.source} is off`);
       const s = await provider.closes(i.symbol);
-      // Only finished days (crypto: the price of the run is today's).
-      const until = i.source === 'mobula' ? today : closed;
+      // Only finished days.
+      const until = i.crypto ? cryptoClosed : closed;
       for (const c of s.closes.filter((c) => c.day <= until)) {
         const rows = await db.query(
           `insert into price (instrument_id, day, close_e8, source) values ($1, $2, $3, $4)

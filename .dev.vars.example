@@ -7,7 +7,5 @@ RESEND_API_KEY=
 ALLOWED_EMAILS=
 # WAITLIST_OPEN=1 shows the waiting list form. Off in production until the legal texts are reviewed.
 WAITLIST_OPEN=
-# MOBULA_API_KEY: crypto prices (free plan). Empty = crypto prices by hand.
-MOBULA_API_KEY=
 # MARKETSTACK_API_KEY: paid alternative for stocks and ETFs. Empty = off.
 MARKETSTACK_API_KEY=

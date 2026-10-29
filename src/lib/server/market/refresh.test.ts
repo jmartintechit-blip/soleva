@@ -20,7 +20,7 @@ beforeEach(async () => {
   ids = {};
   for (const [k, kind, source, symbol] of [
     ['world', 'etf', 'yahoo', 'IWDA.AS'],
-    ['eth', 'cripto', 'mobula', 'ethereum'],
+    ['eth', 'cripto', 'yahoo', 'ETH-EUR'],
     ['idle', 'etf', 'yahoo', 'IDLE.AS'],
     ['broken', 'accion', 'yahoo', 'BROKEN'],
   ] as const) {
@@ -43,7 +43,11 @@ const fake = (name: PriceProvider['name'], asked: string[]): PriceProvider => ({
     if (symbol === 'BROKEN') throw new Error('429');
     return {
       currency: 'EUR',
-      closes: ['2026-11-05', '2026-11-06', '2026-11-09'].map((day) => ({
+      // Crypto trades on weekends too.
+      closes: (symbol === 'ETH-EUR'
+        ? ['2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09']
+        : ['2026-11-05', '2026-11-06', '2026-11-09']
+      ).map((day) => ({
         day,
         priceE8: toE8('131.51'),
       })),
@@ -54,12 +58,13 @@ const fake = (name: PriceProvider['name'], asked: string[]): PriceProvider => ({
 describe('refreshPrices', () => {
   it('asks only for what is held, stores finished days, and skips what is up to date', async () => {
     expect(lastClosedDay('2026-11-09')).toBe('2026-11-06');
+    expect(lastClosedDay('2026-11-09', true)).toBe('2026-11-08');
     const asked: string[] = [];
-    const deps = { providers: { yahoo: fake('yahoo', asked), mobula: fake('mobula', asked) } };
+    const deps = { providers: { yahoo: fake('yahoo', asked) } };
     const first = await refreshPrices(db, deps, '2026-11-09');
-    // Monday's own bar is not final for the stock, but it is the crypto's price of the day.
-    expect(first).toEqual({ stored: 5, failed: [ids.broken], more: false });
-    expect(asked.sort()).toEqual(['BROKEN', 'IWDA.AS', 'ethereum']);
+    // Monday's own bar is final for neither: the stock up to Friday, the crypto up to Sunday.
+    expect(first).toEqual({ stored: 6, failed: [ids.broken], more: false });
+    expect(asked.sort()).toEqual(['BROKEN', 'ETH-EUR', 'IWDA.AS']);
     asked.length = 0;
     await refreshPrices(db, deps, '2026-11-09');
     expect(asked).toEqual(['BROKEN']);

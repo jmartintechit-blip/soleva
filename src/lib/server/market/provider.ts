@@ -12,9 +12,9 @@ export interface Series {
 }
 
 // Every price source looks the same to the rest of the app: swap Yahoo for Marketstack (or add
-// one) and nothing else changes. `sourceId` is the symbol at that provider (IWDA.AS, ethereum…).
+// one) and nothing else changes. `sourceId` is the symbol at that provider (IWDA.AS, ETH-EUR…).
 export interface PriceProvider {
-  name: 'yahoo' | 'mobula' | 'marketstack';
+  name: 'yahoo' | 'marketstack';
   closes(sourceId: string): Promise<Series>;
 }
 
