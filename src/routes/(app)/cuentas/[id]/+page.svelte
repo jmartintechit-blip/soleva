@@ -26,122 +26,132 @@
   <title>{a ? a.name : 'Nueva cuenta'} · Soleva</title>
 </svelte:head>
 
-<a class="back sv-muted" href="/cuentas">Cuentas</a>
-<h1 class="title-lg">{a ? 'Editar cuenta' : 'Nueva cuenta'}</h1>
+<div class="page">
+  <a class="back sv-muted" href="/cuentas">Cuentas</a>
+  <h1 class="title-lg">{a ? 'Editar cuenta' : 'Nueva cuenta'}</h1>
 
-<form method="POST" action="?/guardar" class="sv-enter" novalidate>
-  {#snippet error(field: string)}
-    {#if errors[field]}<span class="err" id="{field}-error">{errors[field]}</span>{/if}
-  {/snippet}
+  <form method="POST" action="?/guardar" class="sv-enter" novalidate>
+    {#snippet error(field: string)}
+      {#if errors[field]}<span class="err" id="{field}-error">{errors[field]}</span>{/if}
+    {/snippet}
 
-  <label class="sv-field">
-    <span class="sv-field__label">Nombre</span>
-    <span class="sv-field__box">
-      <input
-        class="sv-field__input"
-        name="name"
-        maxlength="60"
-        required
-        value={values.name ?? a?.name ?? ''}
-        aria-invalid={!!errors.name}
-        aria-describedby={errors.name ? 'name-error' : undefined}
-      />
-    </span>
-    {@render error('name')}
-  </label>
-
-  <label class="sv-field">
-    <span class="sv-field__label">Tipo</span>
-    <span class="sv-field__box">
-      <select class="sv-field__input" name="kind" bind:value={kind}>
-        {#each Object.entries(KIND_LABEL) as [value, label] (value)}
-          <option {value}>{label}</option>
-        {/each}
-      </select>
-    </span>
-    {@render error('kind')}
-  </label>
-
-  <label class="sv-field">
-    <span class="sv-field__label"
-      >{kind === 'deuda' ? 'Lo que debes hoy' : 'Saldo o valor hoy'}</span
-    >
-    <span class="sv-field__box">
-      <input
-        class="sv-field__input"
-        name="balance"
-        inputmode="decimal"
-        autocomplete="off"
-        placeholder="0"
-        value={values.balance ?? (a ? decimal(a.balanceCents) : '')}
-        aria-invalid={!!errors.balance}
-        aria-describedby={errors.balance ? 'balance-error' : undefined}
-      />
-      <span class="sv-field__suffix">€</span>
-    </span>
-    {@render error('balance')}
-  </label>
-
-  {#if hasRate}
     <label class="sv-field">
-      <span class="sv-field__label">{RATE_LABEL[kind] ?? 'Interés o remuneración anual'}</span>
+      <span class="sv-field__label">Nombre</span>
       <span class="sv-field__box">
         <input
           class="sv-field__input"
-          name="rate"
+          name="name"
+          maxlength="60"
+          required
+          value={values.name ?? a?.name ?? ''}
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? 'name-error' : undefined}
+        />
+      </span>
+      {@render error('name')}
+    </label>
+
+    <label class="sv-field">
+      <span class="sv-field__label">Tipo</span>
+      <span class="sv-field__box">
+        <select class="sv-field__input" name="kind" bind:value={kind}>
+          {#each Object.entries(KIND_LABEL) as [value, label] (value)}
+            <option {value}>{label}</option>
+          {/each}
+        </select>
+      </span>
+      {@render error('kind')}
+    </label>
+
+    <label class="sv-field">
+      <span class="sv-field__label"
+        >{kind === 'deuda' ? 'Lo que debes hoy' : 'Saldo o valor hoy'}</span
+      >
+      <span class="sv-field__box">
+        <input
+          class="sv-field__input"
+          name="balance"
           inputmode="decimal"
           autocomplete="off"
-          placeholder={defaultRate}
-          value={values.rate ?? (a ? decimal(a.annualRateBp) : '')}
-          aria-invalid={!!errors.rate}
-          aria-describedby="rate-hint"
+          placeholder="0"
+          value={values.balance ?? (a ? decimal(a.balanceCents) : '')}
+          aria-invalid={!!errors.balance}
+          aria-describedby={errors.balance ? 'balance-error' : undefined}
         />
-        <span class="sv-field__suffix">%</span>
+        <span class="sv-field__suffix">€</span>
       </span>
-      {@render error('rate')}
-      <span class="sv-field__hint" id="rate-hint">
-        {kind === 'vehiculo' ? 'En negativo si pierde valor. Vacío: −15 % al año.' : 'Vacío: 0 %.'}
-      </span>
+      {@render error('balance')}
     </label>
-  {:else}
-    <p class="sv-field__hint">
-      Crece con la rentabilidad del escenario que elijas en la proyección.
-    </p>
-  {/if}
 
-  <label class="check">
-    <input type="checkbox" name="isEstimated" checked={a?.isEstimated ?? false} />
-    <span>Es un valor estimado <span class="sv-muted">(un piso, un coche…)</span></span>
-  </label>
+    {#if hasRate}
+      <label class="sv-field">
+        <span class="sv-field__label">{RATE_LABEL[kind] ?? 'Interés o remuneración anual'}</span>
+        <span class="sv-field__box">
+          <input
+            class="sv-field__input"
+            name="rate"
+            inputmode="decimal"
+            autocomplete="off"
+            placeholder={defaultRate}
+            value={values.rate ?? (a ? decimal(a.annualRateBp) : '')}
+            aria-invalid={!!errors.rate}
+            aria-describedby="rate-hint"
+          />
+          <span class="sv-field__suffix">%</span>
+        </span>
+        {@render error('rate')}
+        <span class="sv-field__hint" id="rate-hint">
+          {kind === 'vehiculo'
+            ? 'En negativo si pierde valor. Vacío: −15 % al año.'
+            : 'Vacío: 0 %.'}
+        </span>
+      </label>
+    {:else}
+      <p class="sv-field__hint">
+        Crece con la rentabilidad del escenario que elijas en la proyección.
+      </p>
+    {/if}
 
-  <button class="sv-btn sv-btn--accent">{a ? 'Guardar' : 'Crear cuenta'}</button>
-</form>
+    <label class="check">
+      <input type="checkbox" name="isEstimated" checked={a?.isEstimated ?? false} />
+      <span>Es un valor estimado <span class="sv-muted">(un piso, un coche…)</span></span>
+    </label>
 
-{#if a}
-  <div class="danger">
-    <form method="POST" action="?/archivar">
-      <input type="hidden" name="archived" value={String(!a.archived)} />
-      <button class="sv-btn sv-btn--ghost sv-btn--sm"
-        >{a.archived ? 'Recuperar' : 'Archivar'}</button
+    <button class="sv-btn sv-btn--accent">{a ? 'Guardar' : 'Crear cuenta'}</button>
+  </form>
+
+  {#if a}
+    <div class="danger">
+      <form method="POST" action="?/archivar">
+        <input type="hidden" name="archived" value={String(!a.archived)} />
+        <button class="sv-btn sv-btn--ghost sv-btn--sm"
+          >{a.archived ? 'Recuperar' : 'Archivar'}</button
+        >
+      </form>
+      <form
+        method="POST"
+        action="?/borrar"
+        onsubmit={(e) => {
+          if (!confirm('¿Borrar esta cuenta y sus reglas? No se puede deshacer.'))
+            e.preventDefault();
+        }}
       >
-    </form>
-    <form
-      method="POST"
-      action="?/borrar"
-      onsubmit={(e) => {
-        if (!confirm('¿Borrar esta cuenta y sus reglas? No se puede deshacer.')) e.preventDefault();
-      }}
-    >
-      <button class="sv-btn sv-btn--ghost sv-btn--sm">Borrar</button>
-    </form>
-    {#if form?.deleteError}<p class="err" role="alert">{form.deleteError}</p>{/if}
-    <p class="sv-field__hint">
-      Archivar la saca del patrimonio y de la proyección sin perder nada.
-    </p>
-  </div>
-{/if}
+        <button class="sv-btn sv-btn--ghost sv-btn--sm">Borrar</button>
+      </form>
+      {#if form?.deleteError}<p class="err" role="alert">{form.deleteError}</p>{/if}
+      <p class="sv-field__hint">
+        Archivar la saca del patrimonio y de la proyección sin perder nada.
+      </p>
+    </div>
+  {/if}
+</div>
 
 <style>
+  /* A form reads best narrow: centred on wide screens. */
+  .page {
+    max-width: 480px;
+    margin-inline: auto;
+  }
   .back {
     display: inline-flex;
     min-height: 44px;

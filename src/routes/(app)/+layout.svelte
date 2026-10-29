@@ -140,8 +140,11 @@
     min-width: 0;
     padding: var(--space-5) var(--space-5) 96px;
   }
+  /* As in escritorio-proyeccion: content up to 1160 px, centred in what the sidebar leaves. */
   .content {
     position: relative;
+    max-width: 1160px;
+    margin-inline: auto;
   }
   .home {
     color: inherit;

@@ -17,13 +17,13 @@ test('close the month: proposal, an inline correction, confirm once', async ({ p
   await page.goto('/cierre');
   await hydrated(page);
   await expect(page.getByRole('heading', { name: /^Cierre de / })).toBeVisible();
-  await expect(page.getByText('+1.500,00 € por tus reglas')).toBeVisible();
-  await expect(page.getByText('13.500,00 €')).toBeVisible();
+  await expect(page.getByText('+1.500 € por tus reglas')).toBeVisible();
+  await expect(page.getByText('13.500 €')).toBeVisible();
 
   await page.getByText('Indexado', { exact: true }).click();
   await page.getByLabel('Saldo real de Indexado').fill('10.250');
   await expect(page.getByText('Corregido por ti')).toBeVisible();
-  await expect(page.getByText('13.750,00 €')).toBeVisible();
+  await expect(page.getByText('13.750 €')).toBeVisible();
   await page.getByRole('button', { name: 'Listo' }).last().click();
   await page.getByRole('button', { name: 'Confirmar saldos' }).click();
 
@@ -44,7 +44,7 @@ test('close the month: proposal, an inline correction, confirm once', async ({ p
   await page.getByRole('heading', { name: 'Meses cerrados' }).scrollIntoViewIfNeeded();
   // Hydrated already, so this is a client-side navigation.
   await page.locator('a[href^="/cierre/"]').first().click();
-  await page.getByText('Banco', { exact: true }).click();
+  await page.locator('details', { hasText: 'Banco' }).getByText('Corregir').click();
   await page.getByLabel('Saldo real de Banco').fill('3.400');
   await page.getByRole('button', { name: 'Guardar cambio' }).first().click();
   await expect(page.getByText(/Cuenta en pocas palabras/)).toBeVisible();
@@ -54,7 +54,7 @@ test('close the month: proposal, an inline correction, confirm once', async ({ p
   await expect(page.getByText('Corregido una vez')).toBeVisible();
   await page.getByText('Banco', { exact: true }).click();
   await expect(page.getByText('Olvidé un recibo')).toBeVisible();
-  await expect(page.getByText('13.650,00 €').last()).toBeVisible();
+  await expect(page.getByText('13.650 €').last()).toBeVisible();
 
   await expect((await page.goto('/cierre/2020-13'))!.status()).toBe(404);
 });

@@ -58,7 +58,7 @@
         </span>
       </a>
       <span class="sv-row__value"
-        >{SIGN[r.type]}{formatEuros(r.amountCents, { withCents: r.amountCents % 100 !== 0 })}
+        >{SIGN[r.type]}{formatEuros(r.amountCents, { withCents: true })}
         <span class="sv-muted every">{EVERY[r.frequency]}</span></span
       >
       <form method="POST" action="?/activar">
@@ -113,7 +113,6 @@
   section {
     display: flex;
     flex-direction: column;
-    max-width: 720px;
   }
   .sv-row__main {
     color: inherit;

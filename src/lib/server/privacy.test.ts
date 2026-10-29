@@ -58,7 +58,7 @@ beforeEach(async () => {
 afterEach(() => db.close());
 
 describe('exportData', () => {
-  it('has everything the user wrote down, in cents, and nothing of anyone else', async () => {
+  it('has everything the user wrote down, amounts in euros, and nothing of anyone else', async () => {
     const data = await exportData(db, 'ana');
     expect(data.ajustes).toEqual([
       expect.objectContaining({
@@ -69,17 +69,17 @@ describe('exportData', () => {
       }),
     ]);
     expect(data.cuentas).toEqual([
-      expect.objectContaining({ name: '=Banco, "mío"', balance_cents: 100_00, archived_at: null }),
+      expect.objectContaining({ name: '=Banco, "mío"', balance_eur: 100, archived_at: null }),
     ]);
     expect(data.reglas).toEqual([
-      expect.objectContaining({ name: 'Nómina', amount_cents: 150_000, start_month: '2026-01' }),
+      expect.objectContaining({ name: 'Nómina', amount_eur: 1500, start_month: '2026-01' }),
     ]);
     expect(data.cierres).toEqual([
-      expect.objectContaining({ month: '2026-09', status: 'confirmado', confirmed_cents: 100_00 }),
+      expect.objectContaining({ month: '2026-09', status: 'confirmado', confirmed_eur: 100 }),
     ]);
-    expect(data.cierres[0]!.proposed_cents).toBe(123_45 + 150_000);
+    expect(data.cierres[0]!.proposed_eur).toBe(1623.45);
     expect(data.enmiendas).toEqual([
-      expect.objectContaining({ month: '2026-09', new_cents: 100_00, reason: 'Olvidé un recibo' }),
+      expect.objectContaining({ month: '2026-09', new_eur: 100, reason: 'Olvidé un recibo' }),
     ]);
     expect(JSON.stringify(data)).not.toContain('eva');
   });

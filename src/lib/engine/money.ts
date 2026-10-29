@@ -13,10 +13,12 @@ const exact = new Intl.NumberFormat('es-ES', {
   useGrouping: 'always',
 });
 
-// 1240000 → "12.400 €"; with cents: 125050 → "1.250,50 €". Negatives keep their sign: "−3 €".
+// 1240000 → "12.400 €"; with cents, only when there are any: 125050 → "1.250,50 €",
+// 125000 → "1.250 €". Negatives keep their sign: "−3 €".
 export function formatEuros(cents: number, { withCents = false } = {}): string {
-  const euros = withCents ? cents / 100 : roundHalfAwayFromZero(cents / 100);
-  const text = (withCents ? exact : whole).format(Math.abs(euros));
+  const exactly = withCents && cents % 100 !== 0;
+  const euros = exactly ? cents / 100 : roundHalfAwayFromZero(cents / 100);
+  const text = (exactly ? exact : whole).format(Math.abs(euros));
   return `${euros < 0 ? '−' : ''}${text} €`;
 }
 

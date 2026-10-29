@@ -46,17 +46,17 @@ test('settings: theme, reminder, export everything and delete the account for re
   const json = await page.request.get('/ajustes/exportar/soleva.json');
   expect(json.headers()['content-disposition']).toMatch(/^attachment; filename="soleva-datos-/);
   const data = await json.json();
-  expect(data.cuentas).toEqual([expect.objectContaining({ name: 'Banco', balance_cents: 200000 })]);
+  expect(data.cuentas).toEqual([expect.objectContaining({ name: 'Banco', balance_eur: 2000 })]);
   expect(data.ajustes[0]).toMatchObject({ email: EMAIL, reminder_day: 15 });
   const body = await (await page.request.get('/ajustes/exportar/cuentas.csv')).body();
   expect([...body.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // BOM for Excel
   const csv = body.toString('utf8');
-  expect(csv).toContain('id,name,kind,balance_cents');
-  expect(csv).toContain(',Banco,efectivo,200000,');
+  expect(csv).toContain('id,name,kind,balance_eur');
+  expect(csv).toContain(',Banco,efectivo,2000,');
   expect((await page.request.get('/ajustes/exportar/user.csv')).status()).toBe(404);
 
   // Delete: needs the word, then nothing of the user is left and the session is gone.
-  await page.getByText('Borrar mi cuenta y todos mis datos').click();
+  await page.getByText('Borrar mi cuenta', { exact: true }).click();
   await hydratedAfter(page, () =>
     page.getByRole('button', { name: 'Borrar para siempre' }).click(),
   );

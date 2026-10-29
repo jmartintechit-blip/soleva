@@ -47,92 +47,98 @@
 </header>
 
 <div class="page">
-  <section class="f1 stack">
-    <h1 class="title">{title(close.month)}</h1>
-    <p class="sv-muted body">
-      Confirmado el {day(close.confirmedAt)}. Si un saldo estaba mal, corrígelo: queda anotado el
-      cambio y su motivo.
-    </p>
-  </section>
+  <div class="main">
+    <section class="f1 stack">
+      <h1 class="title">{title(close.month)}</h1>
+      <p class="sv-muted body">
+        Confirmado el {day(close.confirmedAt)}. Si un saldo estaba mal, pulsa Corregir: queda
+        anotado el cambio y su motivo.
+      </p>
+    </section>
 
-  <section class="f2 lines">
-    {#each close.lines as l (l.accountId)}
-      {@const mine = form?.account === l.accountId}
-      <details class="line" open={mine}>
-        <summary>
-          <span class="sv-row__main">
-            <span class="sv-row__title">{l.name}</span>
-            <span class="meta" class:meta--edited={l.amendments.length > 0}
-              >{l.amendments.length
-                ? `Corregido ${l.amendments.length === 1 ? 'una vez' : `${l.amendments.length} veces`}`
-                : l.confirmedCents !== l.proposedCents
-                  ? 'Corregido por ti al cerrar'
-                  : 'Como lo propusieron tus reglas'}</span
-            >
-          </span>
-          <span class="sv-row__value">{value(l.confirmedCents, l.isDebt)}</span>
-        </summary>
-        {#if l.amendments.length}
-          <ol class="trail">
-            {#each l.amendments as a, k (k)}
-              <li>
-                {day(a.at)}: {value(a.previousCents, l.isDebt)} → {value(a.newCents, l.isDebt)} ·
-                <span class="reason">{a.reason}</span>
-              </li>
-            {/each}
-          </ol>
-        {/if}
-        <form
-          method="POST"
-          action="?/enmendar"
-          class="edit"
-          use:enhance={() =>
-            async ({ update }) => {
-              await update({ reset: false });
-            }}
-        >
-          <input type="hidden" name="account" value={l.accountId} />
-          <label class="sv-field__box">
-            <span class="visually-hidden"
-              >{l.isDebt ? 'Lo que debías en' : 'Saldo real de'} {l.name}</span
-            >
-            <input
-              class="sv-field__input"
-              name="amount"
-              inputmode="decimal"
-              autocomplete="off"
-              value={mine && back ? back.amount : decimal(l.confirmedCents)}
-              aria-invalid={mine && !!errors.amount}
-            />
-            <span class="sv-field__suffix">€</span>
-          </label>
-          {#if mine && errors.amount}<span class="err">{errors.amount}</span>{/if}
-          <label class="sv-field__box">
-            <span class="visually-hidden">Motivo del cambio en {l.name}</span>
-            <input
-              class="sv-field__input"
-              name="reason"
-              maxlength="200"
-              autocomplete="off"
-              placeholder="Motivo, por ejemplo: olvidé un recibo"
-              value={mine && back ? back.reason : ''}
-              aria-invalid={mine && !!errors.reason}
-            />
-          </label>
-          {#if mine && errors.reason}<span class="err">{errors.reason}</span>{/if}
-          <button class="sv-btn sv-btn--primary sv-btn--sm">Guardar cambio</button>
-        </form>
-      </details>
-    {/each}
-  </section>
+    <section class="f2 lines">
+      {#each close.lines as l (l.accountId)}
+        {@const mine = form?.account === l.accountId}
+        <details class="line" open={mine}>
+          <summary>
+            <span class="sv-row__main">
+              <span class="sv-row__title">{l.name}</span>
+              <span class="meta" class:meta--edited={l.amendments.length > 0}
+                >{l.amendments.length
+                  ? `Corregido ${l.amendments.length === 1 ? 'una vez' : `${l.amendments.length} veces`}`
+                  : l.confirmedCents !== l.proposedCents
+                    ? 'Corregido por ti al cerrar'
+                    : 'Como lo propusieron tus reglas'}</span
+              >
+            </span>
+            <span class="sv-row__value">{value(l.confirmedCents, l.isDebt)}</span>
+            <!-- The summary does the toggling; this says what it is for. -->
+            <span class="fix">Corregir</span>
+          </summary>
+          {#if l.amendments.length}
+            <ol class="trail">
+              {#each l.amendments as a, k (k)}
+                <li>
+                  {day(a.at)}: {value(a.previousCents, l.isDebt)} → {value(a.newCents, l.isDebt)} ·
+                  <span class="reason">{a.reason}</span>
+                </li>
+              {/each}
+            </ol>
+          {/if}
+          <form
+            method="POST"
+            action="?/enmendar"
+            class="edit"
+            use:enhance={() =>
+              async ({ update }) => {
+                await update({ reset: false });
+              }}
+          >
+            <input type="hidden" name="account" value={l.accountId} />
+            <label class="sv-field__box">
+              <span class="visually-hidden"
+                >{l.isDebt ? 'Lo que debías en' : 'Saldo real de'} {l.name}</span
+              >
+              <input
+                class="sv-field__input"
+                name="amount"
+                inputmode="decimal"
+                autocomplete="off"
+                value={mine && back ? back.amount : decimal(l.confirmedCents)}
+                aria-invalid={mine && !!errors.amount}
+              />
+              <span class="sv-field__suffix">€</span>
+            </label>
+            {#if mine && errors.amount}<span class="err">{errors.amount}</span>{/if}
+            <label class="sv-field__box">
+              <span class="visually-hidden">Motivo del cambio en {l.name}</span>
+              <input
+                class="sv-field__input"
+                name="reason"
+                maxlength="200"
+                autocomplete="off"
+                placeholder="Motivo, por ejemplo: olvidé un recibo"
+                value={mine && back ? back.reason : ''}
+                aria-invalid={mine && !!errors.reason}
+              />
+            </label>
+            {#if mine && errors.reason}<span class="err">{errors.reason}</span>{/if}
+            <button class="sv-btn sv-btn--primary sv-btn--sm">Guardar cambio</button>
+          </form>
+        </details>
+      {/each}
+    </section>
+  </div>
 
-  <section class="f3 total">
-    <span class="sv-muted">Patrimonio al cerrar</span>
-    <span class="sum">{formatEuros(net, { withCents: true })}</span>
-  </section>
-  {#if form?.amended}
-    <p class="saved" role="status">Cambio guardado</p>
-  {/if}
+  <div class="side">
+    <section class="f3 total">
+      <span class="sv-muted">Patrimonio al cerrar</span>
+      <span class="sum">{formatEuros(net, { withCents: true })}</span>
+    </section>
+    {#if form?.amended}
+      <p class="saved" role="status">Cambio guardado</p>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -160,11 +166,42 @@
     color: var(--ink);
     box-shadow: inset 0 0 0 1px var(--hairline-strong);
   }
-  .page {
+  .page,
+  .main,
+  .side {
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-    max-width: 560px;
+  }
+  /* Desktop: the balances left, what they add up to right. */
+  @media (min-width: 1024px) {
+    .page {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+      align-items: start;
+      gap: var(--space-8);
+    }
+    .side {
+      position: sticky;
+      top: var(--space-6);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--hairline);
+    }
+  }
+  .fix {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 14px;
+    border-radius: var(--radius-pill);
+    box-shadow: inset 0 0 0 1px var(--hairline-strong);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  details[open] .fix {
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
   }
   .stack {
     display: flex;
@@ -200,6 +237,9 @@
   }
   summary::-webkit-details-marker {
     display: none;
+  }
+  summary .sv-row__value {
+    white-space: nowrap;
   }
   .meta {
     font-size: 12px;

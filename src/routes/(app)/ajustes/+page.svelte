@@ -28,139 +28,151 @@
     <p class="sv-muted">{page.data.email}</p>
   </header>
 
-  <section class="f2 group" aria-labelledby="tema">
-    <h2 id="tema" class="sv-label">Tema</h2>
-    <form method="POST" action="?/tema" class="themes" use:enhance>
-      {#each THEMES as t (t.id)}
-        <button
-          class="dot"
-          name="theme"
-          value={t.id}
-          aria-pressed={theme === t.id}
-          style:--c={t.color}
+  <div class="cols">
+    <div class="col">
+      <section class="f2 group" aria-labelledby="tema">
+        <h2 id="tema" class="sv-label">Tema</h2>
+        <form method="POST" action="?/tema" class="themes" use:enhance>
+          {#each THEMES as t (t.id)}
+            <button
+              class="dot"
+              name="theme"
+              value={t.id}
+              aria-pressed={theme === t.id}
+              style:--c={t.color}
+            >
+              <span aria-hidden="true"></span>{t.label}
+            </button>
+          {/each}
+        </form>
+        <p class="hint">Solo cambia en este dispositivo.</p>
+      </section>
+
+      <section class="f2 group" aria-labelledby="aviso">
+        <h2 id="aviso" class="sv-label">Recordatorio de cierre</h2>
+        <form
+          method="POST"
+          action="?/recordatorio"
+          class="stack form"
+          use:enhance={() =>
+            async ({ update }) => {
+              await update({ reset: false });
+            }}
         >
-          <span aria-hidden="true"></span>{t.label}
-        </button>
-      {/each}
-    </form>
-    <p class="hint">Solo cambia en este dispositivo.</p>
-  </section>
-
-  <section class="f2 group" aria-labelledby="aviso">
-    <h2 id="aviso" class="sv-label">Recordatorio de cierre</h2>
-    <form
-      method="POST"
-      action="?/recordatorio"
-      class="stack form"
-      use:enhance={() =>
-        async ({ update }) => {
-          await update({ reset: false });
-        }}
-    >
-      <label class="toggle">
-        <span>Avisarme por email para cerrar el mes</span>
-        <input
-          type="checkbox"
-          class="sv-switch"
-          role="switch"
-          name="enabled"
-          checked={data.reminder.enabled}
-        />
-      </label>
-      <label class="sv-field">
-        <span class="sv-field__label">Día del mes</span>
-        <span class="sv-field__box">
-          <select class="sv-field__input" name="day" aria-invalid={!!form?.reminderErrors?.day}>
-            {#each Array.from({ length: 28 }, (_, i) => i + 1) as d (d)}
-              <option value={d} selected={d === data.reminder.day}>{d}</option>
-            {/each}
-          </select>
-          <svg
-            class="chevron"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg
-          >
-        </span>
-        <span class="sv-field__hint"
-          >Solo si tienes un mes sin cerrar. Hasta el 28, que existe siempre.</span
-        >
-      </label>
-      {#if form?.reminderErrors?.day}<span class="err">{form.reminderErrors.day}</span>{/if}
-      <div class="actions">
-        <button class="sv-btn sv-btn--ghost sv-btn--sm">Guardar recordatorio</button>
-        {#if form?.reminderSaved}<span class="saved" role="status">Guardado</span>{/if}
-      </div>
-    </form>
-  </section>
-
-  <section class="f3 group" aria-labelledby="supuestos">
-    <h2 id="supuestos" class="sv-label">Supuestos de la proyección</h2>
-    <p class="body">
-      {pct(a.prudente)} / {pct(a.base)} / {pct(a.optimista)} % al año, inflación {pct(a.inflation)} %
-    </p>
-    <a class="sv-btn sv-btn--ghost sv-btn--sm self" href="/proyeccion">Cambiarlos en Proyección</a>
-  </section>
-
-  <section class="f3 group" aria-labelledby="datos">
-    <h2 id="datos" class="sv-label">Tus datos</h2>
-    <p class="sv-muted body">
-      Todo lo que has apuntado: cuentas, reglas, cierres con sus correcciones y ajustes. Importes en
-      céntimos.
-    </p>
-    <a class="sv-btn sv-btn--ghost sv-btn--sm self" href="/ajustes/exportar/soleva.json" download
-      >Descargar todo (JSON)</a
-    >
-    <p class="csv">
-      <span class="sv-muted">En CSV:</span>
-      {#each CSV as [file, label] (file)}
-        <a href="/ajustes/exportar/{file}.csv" download>{label}</a>
-      {/each}
-    </p>
-  </section>
-
-  <section class="f4 group" aria-labelledby="sesiones">
-    <h2 id="sesiones" class="sv-label">Sesiones</h2>
-    <div class="actions wrap">
-      <form method="POST" action="/salir">
-        <button class="sv-btn sv-btn--ghost sv-btn--sm">Cerrar sesión</button>
-      </form>
-      <form method="POST" action="?/sesiones">
-        <button class="sv-btn sv-btn--ghost sv-btn--sm">En todos los dispositivos</button>
-      </form>
-    </div>
-  </section>
-
-  <section class="f4 group" aria-labelledby="borrar">
-    <h2 id="borrar" class="sv-label">Borrar cuenta</h2>
-    <details open={!!form?.deleteError}>
-      <summary>Borrar mi cuenta y todos mis datos</summary>
-      <form method="POST" action="?/borrar" class="stack form">
-        <p class="sv-muted body">
-          Se borran para siempre tus cuentas, reglas, cierres, ajustes y sesiones. No se puede
-          deshacer: si quieres conservarlos, descárgalos antes.
-        </p>
-        <label class="sv-field">
-          <span class="sv-field__label">Escribe BORRAR para confirmar</span>
-          <span class="sv-field__box">
+          <label class="toggle">
+            <span>Avisarme por email para cerrar el mes</span>
             <input
-              class="sv-field__input"
-              name="confirm"
-              autocomplete="off"
-              aria-invalid={!!form?.deleteError}
+              type="checkbox"
+              class="sv-switch"
+              role="switch"
+              name="enabled"
+              checked={data.reminder.enabled}
             />
-          </span>
-        </label>
-        {#if form?.deleteError}<span class="err">{form.deleteError}</span>{/if}
-        <button class="sv-btn sv-btn--ghost sv-btn--sm danger self">Borrar para siempre</button>
-      </form>
-    </details>
-  </section>
+          </label>
+          <label class="sv-field">
+            <span class="sv-field__label">Día del mes</span>
+            <span class="sv-field__box">
+              <select class="sv-field__input" name="day" aria-invalid={!!form?.reminderErrors?.day}>
+                {#each Array.from({ length: 28 }, (_, i) => i + 1) as d (d)}
+                  <option value={d} selected={d === data.reminder.day}>{d}</option>
+                {/each}
+              </select>
+              <svg
+                class="chevron"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg
+              >
+            </span>
+            <span class="sv-field__hint"
+              >Solo si tienes un mes sin cerrar. Hasta el 28, que existe siempre.</span
+            >
+          </label>
+          {#if form?.reminderErrors?.day}<span class="err">{form.reminderErrors.day}</span>{/if}
+          <div class="actions">
+            <button class="sv-btn sv-btn--ghost sv-btn--sm">Guardar recordatorio</button>
+            {#if form?.reminderSaved}<span class="saved" role="status">Guardado</span>{/if}
+          </div>
+        </form>
+      </section>
+
+      <section class="f3 group" aria-labelledby="supuestos">
+        <h2 id="supuestos" class="sv-label">Supuestos de la proyección</h2>
+        <p class="body">
+          {pct(a.prudente)} / {pct(a.base)} / {pct(a.optimista)} % al año, inflación {pct(
+            a.inflation,
+          )} %
+        </p>
+        <a class="sv-btn sv-btn--ghost sv-btn--sm self" href="/proyeccion"
+          >Cambiarlos en Proyección</a
+        >
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="f3 group" aria-labelledby="datos">
+        <h2 id="datos" class="sv-label">Tus datos</h2>
+        <p class="sv-muted body">
+          Todo lo que has apuntado: cuentas, reglas, cierres con sus correcciones y ajustes.
+        </p>
+        <a
+          class="sv-btn sv-btn--ghost sv-btn--sm self"
+          href="/ajustes/exportar/soleva.json"
+          download>Descargar todo (JSON)</a
+        >
+        <p class="csv">
+          <span class="sv-muted">En CSV:</span>
+          {#each CSV as [file, label] (file)}
+            <a href="/ajustes/exportar/{file}.csv" download>{label}</a>
+          {/each}
+        </p>
+      </section>
+
+      <section class="f4 group" aria-labelledby="sesiones">
+        <h2 id="sesiones" class="sv-label">Sesiones</h2>
+        <div class="actions wrap">
+          <form method="POST" action="/salir">
+            <button class="sv-btn sv-btn--ghost sv-btn--sm">Cerrar sesión</button>
+          </form>
+          <form method="POST" action="?/sesiones">
+            <button class="sv-btn sv-btn--ghost sv-btn--sm">En todos los dispositivos</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Apart from the rest and in red: the one thing here that cannot be undone. -->
+      <section class="f4 group danger-zone" aria-labelledby="borrar">
+        <h2 id="borrar" class="sv-label">Borrar cuenta</h2>
+        <details open={!!form?.deleteError}>
+          <summary class="sv-btn sv-btn--sm danger-btn">Borrar mi cuenta</summary>
+          <form method="POST" action="?/borrar" class="stack form">
+            <p class="sv-muted body">
+              Se borran para siempre tus cuentas, reglas, cierres, ajustes y sesiones. No se puede
+              deshacer: si quieres conservarlos, descárgalos antes.
+            </p>
+            <label class="sv-field">
+              <span class="sv-field__label">Escribe BORRAR para confirmar</span>
+              <span class="sv-field__box">
+                <input
+                  class="sv-field__input"
+                  name="confirm"
+                  autocomplete="off"
+                  aria-invalid={!!form?.deleteError}
+                />
+              </span>
+            </label>
+            {#if form?.deleteError}<span class="err">{form.deleteError}</span>{/if}
+            <button class="sv-btn sv-btn--sm danger-fill self">Borrar para siempre</button>
+          </form>
+        </details>
+      </section>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -169,11 +181,20 @@
   p {
     margin: 0;
   }
-  .page {
+  .page,
+  .cols,
+  .col {
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-    max-width: 560px;
+  }
+  @media (min-width: 1024px) {
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+      gap: var(--space-8);
+    }
   }
   .stack {
     display: flex;
@@ -295,15 +316,31 @@
     color: var(--ink);
     min-height: 24px;
   }
-  summary {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    cursor: pointer;
+  .danger-zone {
+    margin-top: var(--space-5);
   }
-  .danger {
+  details > form {
+    margin-top: var(--space-4);
+  }
+  summary {
+    list-style: none;
+    width: fit-content;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  .danger-btn {
+    min-height: 44px;
     color: var(--negative);
+    box-shadow: inset 0 0 0 1px var(--negative);
+  }
+  .danger-btn:hover {
+    background: var(--negative-soft);
+  }
+  .danger-fill {
+    min-height: 44px;
+    background: var(--negative);
+    color: var(--bg);
   }
   .err {
     font-size: 13px;

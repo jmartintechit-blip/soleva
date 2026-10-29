@@ -79,7 +79,11 @@
   const impact = $derived.by(() => {
     if (type === 'entra')
       return once
-        ? { label: 'Entra en tu patrimonio', value: `+${formatEuros(cents)}`, note: '' }
+        ? {
+            label: 'Entra en tu patrimonio',
+            value: `+${formatEuros(cents, { withCents: true })}`,
+            note: '',
+          }
         : {
             label: 'Entra en tu patrimonio en 10 años',
             value: `+${formatEuros(monthly * 120)}`,
@@ -87,7 +91,11 @@
           };
     if (type === 'sale')
       return once
-        ? { label: 'Sale de tu patrimonio', value: `−${formatEuros(cents)}`, note: '' }
+        ? {
+            label: 'Sale de tu patrimonio',
+            value: `−${formatEuros(cents, { withCents: true })}`,
+            note: '',
+          }
         : {
             label: 'Sale de tu capacidad de ahorro',
             value: `−${formatEuros(monthly)} al mes`,

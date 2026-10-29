@@ -84,135 +84,150 @@
     <a class="sv-btn sv-btn--accent" href="/cuentas/nueva">Crear mi primera cuenta</a>
   </section>
 {:else}
-  <section class="sv-hero f1">
-    <span class="sv-hero__label">Tu patrimonio hoy</span>
-    <span class="sv-hero__value" aria-live="polite">{formatEuros(shown.value)}</span>
-    <span class="sv-hero__meta">
-      {#if last}
-        <span class="up">{change >= 0 ? '+' : ''}{formatEuros(change)}</span> desde el cierre de
-        {monthName(last.month)}
-      {:else}
-        Lo que tienes menos lo que debes.
-      {/if}
-    </span>
-  </section>
-
-  {#if data.history.length}
-    {@const first = data.history[0]!.month}
-    <section class="f2 spark" bind:clientWidth={width}>
-      <svg
-        viewBox="0 0 {width} {H}"
-        {width}
-        height={H}
-        role="img"
-        aria-label="Evolución de tu patrimonio desde {monthName(first, {
-          month: 'long',
-          year: 'numeric',
-        })}: de {formatEuros(series[0]!)} a {formatEuros(now)}."
-      >
-        <defs>
-          <linearGradient id="spk" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="var(--accent)" stop-opacity=".22" />
-            <stop offset="1" stop-color="var(--accent)" stop-opacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={spark.area} fill="url(#spk)" />
-        <path
-          class="sv-draw"
-          pathLength="1"
-          d={spark.line}
-          fill="none"
-          stroke="var(--accent)"
-          stroke-width="2.25"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-        <circle class="sv-halo" cx={spark.end.x} cy={spark.end.y} r="10" fill="var(--accent)" />
-        <circle cx={spark.end.x} cy={spark.end.y} r="4" fill="var(--accent)" />
-      </svg>
-      <div class="axis">
-        <span>{monthName(first, { month: 'short', year: 'numeric' })}</span><span>Hoy</span>
-      </div>
-    </section>
-  {/if}
-
-  <a class="f2 ahead" href="/proyeccion">
-    {#if light}
-      <span class="sv-pill" class:sv-pill--ok={light.level === 'en_camino'}>
-        <span class="sv-pill__dot"></span>
-        {light.level === 'en_camino' ? 'Vas en camino' : 'Algo por debajo del plan'}
-      </span>
-    {/if}
-    <span class="sv-muted">En 10 años: ~{formatEuros(in10)}</span>
-  </a>
-
-  {#if data.toClose}
-    <a class="f3 close" href="/cierre">
-      <span class="close__icon" aria-hidden="true">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          ><rect x="4" y="5" width="16" height="15" rx="2" /><path
-            d="M8 3v4M16 3v4M8 13l3 3 5-6"
-          /></svg
+  <div class="cols">
+    <div class="main">
+      <section class="sv-hero f1">
+        <span class="sv-hero__label">Tu patrimonio hoy</span>
+        <span class="sv-hero__value" aria-live="polite"
+          >{formatEuros(shown.value, { withCents: true })}</span
         >
-      </span>
-      <span class="sv-row__main">
-        <span class="sv-row__title">Cierra {monthName(data.toClose)}</span>
-        <span class="sv-row__meta"
-          >{live.length === 1 ? '1 saldo propuesto' : `${live.length} saldos propuestos`} · menos de 1
-          minuto</span
-        >
-      </span>
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        stroke-linecap="round"
-        aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg
-      >
-    </a>
-  {/if}
+        <span class="sv-hero__meta">
+          {#if last}
+            <span class="up"
+              >{change >= 0 ? '+' : ''}{formatEuros(change, { withCents: true })}</span
+            >
+            desde el cierre de
+            {monthName(last.month)}
+          {:else}
+            Lo que tienes menos lo que debes.
+          {/if}
+        </span>
+      </section>
 
-  {#if !data.rules.length}
-    <a class="f3 sv-row card" href="/reglas/nueva">
-      <span class="sv-row__main">
-        <span class="sv-row__title">Crea tu primera regla</span>
-        <span class="sv-row__meta">Tu nómina, tus gastos fijos o lo que apartas cada mes</span>
-      </span>
-    </a>
-  {/if}
-
-  <section class="f4 accounts" aria-labelledby="cuentas">
-    <div class="head">
-      <h2 id="cuentas">Cuentas</h2>
-      <a href="/cuentas" class="sv-muted">{live.length}</a>
-    </div>
-    {#each live as a (a.id)}
-      <a class="sv-row" href="/cuentas/{a.id}">
-        <span class="sv-row__main">
-          <span class="sv-row__title">{a.name}</span>
-          <span class="sv-row__meta"
-            >{KIND_LABEL[a.kind]}{a.isEstimated ? ' · valor estimado' : ''}</span
+      {#if data.history.length}
+        {@const first = data.history[0]!.month}
+        <section class="f2 spark" bind:clientWidth={width}>
+          <svg
+            viewBox="0 0 {width} {H}"
+            {width}
+            height={H}
+            role="img"
+            aria-label="Evolución de tu patrimonio desde {monthName(first, {
+              month: 'long',
+              year: 'numeric',
+            })}: de {formatEuros(series[0]!, { withCents: true })} a {formatEuros(now, {
+              withCents: true,
+            })}."
           >
-        </span>
-        <span class="sv-row__value">
-          {formatEuros(a.kind === 'deuda' ? -a.balanceCents : a.balanceCents, { withCents: true })}
-        </span>
-      </a>
-    {/each}
-  </section>
+            <defs>
+              <linearGradient id="spk" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="var(--accent)" stop-opacity=".22" />
+                <stop offset="1" stop-color="var(--accent)" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <path d={spark.area} fill="url(#spk)" />
+            <path
+              class="sv-draw"
+              pathLength="1"
+              d={spark.line}
+              fill="none"
+              stroke="var(--accent)"
+              stroke-width="2.25"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle class="sv-halo" cx={spark.end.x} cy={spark.end.y} r="10" fill="var(--accent)" />
+            <circle cx={spark.end.x} cy={spark.end.y} r="4" fill="var(--accent)" />
+          </svg>
+          <div class="axis">
+            <span>{monthName(first, { month: 'short', year: 'numeric' })}</span><span>Hoy</span>
+          </div>
+        </section>
+      {/if}
 
-  <p class="sv-legal">Las proyecciones son estimaciones, no asesoramiento.</p>
+      <a class="f2 ahead" href="/proyeccion">
+        {#if light}
+          <span class="sv-pill" class:sv-pill--ok={light.level === 'en_camino'}>
+            <span class="sv-pill__dot"></span>
+            {light.level === 'en_camino' ? 'Vas en camino' : 'Algo por debajo del plan'}
+          </span>
+        {/if}
+        <span class="sv-muted">En 10 años: ~{formatEuros(in10)}</span>
+      </a>
+
+      {#if data.toClose}
+        <a class="f3 close" href="/cierre">
+          <span class="close__icon" aria-hidden="true">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><rect x="4" y="5" width="16" height="15" rx="2" /><path
+                d="M8 3v4M16 3v4M8 13l3 3 5-6"
+              /></svg
+            >
+          </span>
+          <span class="sv-row__main">
+            <span class="sv-row__title">Cierra {monthName(data.toClose)}</span>
+            <span class="sv-row__meta"
+              >{live.length === 1 ? '1 saldo propuesto' : `${live.length} saldos propuestos`} · menos
+              de 1 minuto</span
+            >
+          </span>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg
+          >
+        </a>
+      {/if}
+
+      {#if !data.rules.length}
+        <a class="f3 sv-row card" href="/reglas/nueva">
+          <span class="sv-row__main">
+            <span class="sv-row__title">Crea tu primera regla</span>
+            <span class="sv-row__meta">Tu nómina, tus gastos fijos o lo que apartas cada mes</span>
+          </span>
+        </a>
+      {/if}
+    </div>
+
+    <div class="side">
+      <section class="f4 accounts" aria-labelledby="cuentas">
+        <div class="head">
+          <h2 id="cuentas">Cuentas</h2>
+          <a href="/cuentas" class="sv-muted">{live.length}</a>
+        </div>
+        {#each live as a (a.id)}
+          <a class="sv-row" href="/cuentas/{a.id}">
+            <span class="sv-row__main">
+              <span class="sv-row__title">{a.name}</span>
+              <span class="sv-row__meta"
+                >{KIND_LABEL[a.kind]}{a.isEstimated ? ' · valor estimado' : ''}</span
+              >
+            </span>
+            <span class="sv-row__value">
+              {formatEuros(a.kind === 'deuda' ? -a.balanceCents : a.balanceCents, {
+                withCents: true,
+              })}
+            </span>
+          </a>
+        {/each}
+      </section>
+
+      <p class="sv-legal">Las proyecciones son estimaciones, no asesoramiento.</p>
+    </div>
+  </div>
 {/if}
 
 <style>
@@ -319,6 +334,18 @@
     display: flex;
     flex-direction: column;
     max-width: 720px;
+  }
+  /* Desktop: your wealth and where it goes on the left, the accounts that make it on the right. */
+  @media (min-width: 1024px) {
+    .cols {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+      align-items: start;
+      gap: var(--space-8);
+    }
+    .side {
+      padding-top: var(--space-2);
+    }
   }
   .head {
     display: flex;

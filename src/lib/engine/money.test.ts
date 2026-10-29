@@ -19,6 +19,8 @@ describe('money', () => {
   it('formats cents when asked', () => {
     expect(formatEuros(125_050, { withCents: true })).toBe('1.250,50 €');
     expect(formatEuros(-5, { withCents: true })).toBe('−0,05 €');
+    expect(formatEuros(125_000, { withCents: true })).toBe('1.250 €');
+    expect(formatEuros(-300, { withCents: true })).toBe('−3 €');
   });
 
   it('reads amounts typed the Spanish way, or with a decimal point', () => {

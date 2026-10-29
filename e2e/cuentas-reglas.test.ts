@@ -19,7 +19,7 @@ test('create accounts, a rule from its template, and pause it', async ({ page })
   await page.getByLabel('Saldo o valor hoy').fill('1.250,50');
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
   await expect(page).toHaveURL(/\/cuentas$/);
-  await expect(page.getByText('1.250,50 €')).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Banco/ }).getByText('1.250,50 €')).toBeVisible();
 
   await hydrated(page);
   await page.getByRole('link', { name: 'Nueva cuenta' }).click();
@@ -27,7 +27,7 @@ test('create accounts, a rule from its template, and pause it', async ({ page })
   await page.getByLabel('Tipo').selectOption('inversion');
   await page.getByLabel('Saldo o valor hoy').fill('5000');
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
-  await expect(page.getByText('6.251 €')).toBeVisible();
+  await expect(page.getByText('6.250,50 €')).toBeVisible();
 
   await page.goto('/reglas');
   await hydrated(page);

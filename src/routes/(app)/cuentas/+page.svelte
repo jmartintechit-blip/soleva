@@ -29,7 +29,7 @@
 <header class="sv-enter">
   <div class="sv-hero">
     <span class="sv-hero__label">Patrimonio</span>
-    <span class="sv-hero__value">{formatEuros(netWorth(data.accounts))}</span>
+    <span class="sv-hero__value">{formatEuros(netWorth(data.accounts), { withCents: true })}</span>
     <span class="sv-hero__meta">Lo que tienes menos lo que debes.</span>
   </div>
   <a class="sv-btn sv-btn--primary sv-btn--sm" href="/cuentas/nueva">Nueva cuenta</a>
@@ -64,7 +64,6 @@
   section {
     display: flex;
     flex-direction: column;
-    max-width: 720px;
   }
   section + section {
     margin-top: var(--space-6);

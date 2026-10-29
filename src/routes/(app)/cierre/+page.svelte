@@ -83,6 +83,22 @@
   });
 </script>
 
+{#snippet history()}
+  {#if data.history.length}
+    <section class="f4 closed" aria-labelledby="cerrados">
+      <h2 id="cerrados" class="sv-label">Meses cerrados</h2>
+      {#each data.history as h (h.month)}
+        <a class="sv-row" href="/cierre/{h.month}">
+          <span class="sv-row__main">
+            <span class="sv-row__title">{title(h.month)} {h.month.slice(0, 4)}</span>
+          </span>
+          <span class="sv-row__value">{formatEuros(h.netCents, { withCents: true })}</span>
+        </a>
+      {/each}
+    </section>
+  {/if}
+{/snippet}
+
 <svelte:head>
   <title>Cierre de mes · Soleva</title>
 </svelte:head>
@@ -132,10 +148,16 @@
     </div>
     <div class="result">
       <span class="sv-muted small">Tu patrimonio</span>
-      <span class="big" aria-live="polite">{formatEuros(counting ? shown.value : done.net)}</span>
+      <span class="big" aria-live="polite"
+        >{formatEuros(counting ? shown.value : done.net, {
+          withCents: true,
+        })}</span
+      >
       {#if done.prev}
         <span class="delta"
-          >{done.net >= done.prev.netCents ? '+' : ''}{formatEuros(done.net - done.prev.netCents)}
+          >{done.net >= done.prev.netCents ? '+' : ''}{formatEuros(done.net - done.prev.netCents, {
+            withCents: true,
+          })}
           respecto a {monthName(done.prev.month)}</span
         >
       {:else}
@@ -145,24 +167,30 @@
     <a class="sv-btn sv-btn--ghost" href="/inicio">Volver a Inicio</a>
   </section>
 {:else if !data.month}
-  <section class="f1 stack">
-    <h1 class="title">Este mes ya está cerrado</h1>
-    <p class="sv-muted body">
-      Vuelve cuando acabe el mes: Soleva te propondrá los saldos a partir de tus reglas.
-    </p>
-    <a class="sv-btn sv-btn--ghost" href="/inicio">Volver a Inicio</a>
-  </section>
+  <div class="cols">
+    <section class="f1 stack">
+      <h1 class="title">Este mes ya está cerrado</h1>
+      <p class="sv-muted body">
+        Vuelve cuando acabe el mes: Soleva te propondrá los saldos a partir de tus reglas.
+      </p>
+      <a class="sv-btn sv-btn--ghost" href="/inicio">Volver a Inicio</a>
+    </section>
+    <div class="side">{@render history()}</div>
+  </div>
 {:else if !data.lines.length}
-  <section class="f1 stack">
-    <h1 class="title">Cierre de {monthName(data.month)}</h1>
-    <p class="sv-muted body">Para cerrar el mes necesitas al menos una cuenta.</p>
-    <a class="sv-btn sv-btn--accent" href="/cuentas/nueva">Crear mi primera cuenta</a>
-  </section>
+  <div class="cols">
+    <section class="f1 stack">
+      <h1 class="title">Cierre de {monthName(data.month)}</h1>
+      <p class="sv-muted body">Para cerrar el mes necesitas al menos una cuenta.</p>
+      <a class="sv-btn sv-btn--accent" href="/cuentas/nueva">Crear mi primera cuenta</a>
+    </section>
+    <div class="side">{@render history()}</div>
+  </div>
 {:else}
   <form
     method="POST"
     action="?/confirmar"
-    class="review"
+    class="cols"
     use:enhance={() => {
       const took = Math.round((Date.now() - started) / 1000);
       return async ({ result, update }) => {
@@ -171,97 +199,88 @@
       };
     }}
   >
-    <section class="f1 stack">
-      <h1 class="title">Cierre de {monthName(data.month)}</h1>
-      <p class="sv-muted body">Tus reglas proponen estos saldos. Toca uno para corregirlo.</p>
-    </section>
+    <div class="main">
+      <section class="f1 stack">
+        <h1 class="title">Cierre de {monthName(data.month)}</h1>
+        <p class="sv-muted body">Tus reglas proponen estos saldos. Toca uno para corregirlo.</p>
+      </section>
 
-    <section class="f2 lines">
-      {#each data.lines as l (l.account.id)}
-        {@const id = l.account.id}
-        {@const isEdited = edited(id, l.proposedCents)}
-        {@const c = cents(id, l.proposedCents)}
-        <details class="line" bind:open={opened[id]}>
-          <summary>
-            <span class="tick" class:tick--on={isEdited} aria-hidden="true">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"><path d="M5 12l5 5 9-10" /></svg
+      <section class="f2 lines">
+        {#each data.lines as l (l.account.id)}
+          {@const id = l.account.id}
+          {@const isEdited = edited(id, l.proposedCents)}
+          {@const c = cents(id, l.proposedCents)}
+          <details class="line" bind:open={opened[id]}>
+            <summary>
+              <span class="tick" class:tick--on={isEdited} aria-hidden="true">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"><path d="M5 12l5 5 9-10" /></svg
+                >
+              </span>
+              <span class="sv-row__main">
+                <span class="sv-row__title">{l.account.name}</span>
+                <span class="meta" class:meta--edited={isEdited}
+                  >{isEdited ? 'Corregido por ti' : meta(l)}</span
+                >
+              </span>
+              <span class="sv-row__value"
+                >{formatEuros(l.account.kind === 'deuda' ? -c : c, { withCents: true })}</span
               >
-            </span>
-            <span class="sv-row__main">
-              <span class="sv-row__title">{l.account.name}</span>
-              <span class="meta" class:meta--edited={isEdited}
-                >{isEdited ? 'Corregido por ti' : meta(l)}</span
+            </summary>
+            <div class="edit">
+              <label class="sv-field__box">
+                <span class="visually-hidden"
+                  >{l.account.kind === 'deuda' ? 'Lo que debes en' : 'Saldo real de'}
+                  {l.account.name}</span
+                >
+                <input
+                  class="sv-field__input"
+                  name={id}
+                  inputmode="decimal"
+                  autocomplete="off"
+                  bind:value={typed[id]}
+                  aria-invalid={!!errors[id]}
+                  aria-describedby={errors[id] ? `${id}-error` : undefined}
+                />
+                <span class="sv-field__suffix">€</span>
+              </label>
+              <button
+                type="button"
+                class="sv-btn sv-btn--primary sv-btn--sm done-btn"
+                onclick={() => (opened[id] = false)}>Listo</button
               >
-            </span>
-            <span class="sv-row__value"
-              >{formatEuros(l.account.kind === 'deuda' ? -c : c, { withCents: true })}</span
-            >
-          </summary>
-          <div class="edit">
-            <label class="sv-field__box">
-              <span class="visually-hidden"
-                >{l.account.kind === 'deuda' ? 'Lo que debes en' : 'Saldo real de'}
-                {l.account.name}</span
-              >
-              <input
-                class="sv-field__input"
-                name={id}
-                inputmode="decimal"
-                autocomplete="off"
-                bind:value={typed[id]}
-                aria-invalid={!!errors[id]}
-                aria-describedby={errors[id] ? `${id}-error` : undefined}
-              />
-              <span class="sv-field__suffix">€</span>
-            </label>
-            <button
-              type="button"
-              class="sv-btn sv-btn--primary sv-btn--sm done-btn"
-              onclick={() => (opened[id] = false)}>Listo</button
-            >
-          </div>
-          {#if errors[id]}<span class="err" id="{id}-error">{errors[id]}</span>{/if}
-        </details>
-      {/each}
-    </section>
+            </div>
+            {#if errors[id]}<span class="err" id="{id}-error">{errors[id]}</span>{/if}
+          </details>
+        {/each}
+      </section>
+    </div>
 
-    <section class="f3 total">
-      <span class="sv-muted">Patrimonio al cerrar</span>
-      <span class="sum">{formatEuros(total, { withCents: true })}</span>
-    </section>
+    <div class="side">
+      <section class="f3 total">
+        <span class="sv-muted">Patrimonio al cerrar</span>
+        <span class="sum">{formatEuros(total, { withCents: true })}</span>
+      </section>
 
-    <div class="f4 actions">
-      <button class="sv-btn sv-btn--primary">Confirmar saldos</button>
-      {#if estimated.length}
-        <p class="note">
-          {estimated.map((l) => l.account.name).join(', ')}
-          {estimated.length > 1 ? 'se valoran' : 'se valora'} solo con su estimación.
-        </p>
-      {/if}
+      <div class="f4 actions">
+        <button class="sv-btn sv-btn--primary">Confirmar saldos</button>
+        {#if estimated.length}
+          <p class="note">
+            {estimated.map((l) => l.account.name).join(', ')}
+            {estimated.length > 1 ? 'se valoran' : 'se valora'} solo con su estimación.
+          </p>
+        {/if}
+      </div>
+      {@render history()}
     </div>
   </form>
-{/if}
-
-{#if !form?.done && data.history.length}
-  <section class="f4 closed" aria-labelledby="cerrados">
-    <h2 id="cerrados" class="sv-label">Meses cerrados</h2>
-    {#each data.history as h (h.month)}
-      <a class="sv-row" href="/cierre/{h.month}">
-        <span class="sv-row__main">
-          <span class="sv-row__title">{title(h.month)} {h.month.slice(0, 4)}</span>
-        </span>
-        <span class="sv-row__value">{formatEuros(h.netCents)}</span>
-      </a>
-    {/each}
-  </section>
 {/if}
 
 <style>
@@ -308,11 +327,28 @@
     line-height: 1.5;
     max-width: 48ch;
   }
-  .review {
+  /* One column on a phone; on a desktop the balances left, the outcome and the history right. */
+  .cols,
+  .main,
+  .side {
     display: flex;
     flex-direction: column;
     gap: var(--space-5);
-    max-width: 560px;
+  }
+  @media (min-width: 1024px) {
+    .cols {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+      align-items: start;
+      gap: var(--space-8);
+    }
+    .side {
+      position: sticky;
+      top: var(--space-6);
+    }
+    .closed {
+      margin-top: 0;
+    }
   }
   .lines {
     display: flex;
@@ -332,6 +368,9 @@
   }
   summary::-webkit-details-marker {
     display: none;
+  }
+  summary .sv-row__value {
+    white-space: nowrap;
   }
   summary:active {
     transform: scale(0.99);
@@ -409,8 +448,7 @@
   .closed {
     display: flex;
     flex-direction: column;
-    max-width: 560px;
-    margin-top: var(--space-6);
+    margin-top: var(--space-4);
   }
   .closed h2 {
     margin: 0 0 var(--space-2);

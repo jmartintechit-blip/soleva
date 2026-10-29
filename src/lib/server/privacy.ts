@@ -2,9 +2,11 @@ import type { Db, Row } from './db/index.ts';
 
 const iso = (col: string) => `to_char(${col} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
 const month = (col: string) => `to_char(${col}, 'YYYY-MM')`;
+// Cents to euros for people and spreadsheets: 1234567 → 12345.67, exact (numeric, then float8).
+const eur = (col: string) => `(${col} / 100.0)::float8`;
 
 // Everything the user wrote down, one flat table per kind, so JSON and CSV share it (GDPR art. 20).
-// Amounts stay in cents and rates in basis points, as everywhere else.
+// Amounts in euros (the app keeps cents) and rates in basis points.
 export async function exportData(db: Db, userId: string) {
   const q = (sql: string) => db.query(sql, [userId]);
   const [ajustes, cuentas, reglas, cierres, enmiendas] = await Promise.all([
@@ -15,21 +17,21 @@ export async function exportData(db: Db, userId: string) {
          coalesce(s.reminder_enabled, true) as reminder_enabled,
          s.plan_baseline::text as plan_baseline
        from "user" u left join settings s on s.user_id = u.id where u.id = $1`),
-    q(`select id, name, kind, balance_cents::float8 as balance_cents, is_estimated, annual_rate_bp,
+    q(`select id, name, kind, ${eur('balance_cents')} as balance_eur, is_estimated, annual_rate_bp,
          ${iso('archived_at')} as archived_at, ${iso('created_at')} as created_at
        from money_account where user_id = $1 order by created_at, id`),
-    q(`select id, name, type, amount_cents::float8 as amount_cents, frequency, day,
+    q(`select id, name, type, ${eur('amount_cents')} as amount_eur, frequency, day,
          ${month('start_month')} as start_month, ${month('end_month')} as end_month,
          from_account_id, to_account_id, active, ${iso('created_at')} as created_at
        from rule where user_id = $1 order by created_at, id`),
     q(`select ${month('c.month')} as month, c.status, ${iso('c.confirmed_at')} as confirmed_at,
          l.account_id, a.name as account_name, l.is_debt,
-         l.proposed_cents::float8 as proposed_cents, l.confirmed_cents::float8 as confirmed_cents
+         ${eur('l.proposed_cents')} as proposed_eur, ${eur('l.confirmed_cents')} as confirmed_eur
        from month_close c join month_close_line l on l.close_id = c.id
        join money_account a on a.id = l.account_id
        where c.user_id = $1 order by c.month, a.name, l.account_id`),
-    q(`select ${month('c.month')} as month, e.account_id, e.previous_cents::float8 as previous_cents,
-         e.new_cents::float8 as new_cents, e.reason, ${iso('e.created_at')} as created_at
+    q(`select ${month('c.month')} as month, e.account_id, ${eur('e.previous_cents')} as previous_eur,
+         ${eur('e.new_cents')} as new_eur, e.reason, ${iso('e.created_at')} as created_at
        from close_amendment e join month_close c on c.id = e.close_id
        where c.user_id = $1 order by e.created_at, e.id`),
   ]);
