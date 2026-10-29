@@ -1,26 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { type AutoRule, type EngineInput, type Market, advance } from './advance.ts';
+import { type AutoRule, type EngineInput, advance } from './advance.ts';
+import { market } from './testing.ts';
 import { type Day, addDays } from './day.ts';
 import type { InterestTerms } from './interest.ts';
 import { type Movement, fold, holdingKey } from './ledger.ts';
 import { E8, toE8 } from './units.ts';
-
-// Prices on weekdays only, like a real market: each instrument at a fixed price per day.
-export function market(
-  prices: Record<string, { currency: string; price: string; from?: Day }>,
-  usdPerEur = '1.085',
-): Market {
-  return {
-    currency: (id) => prices[id]!.currency,
-    perEur: (c) => (c === 'USD' ? toE8(usdPerEur) : undefined),
-    close: (id, day) => {
-      const p = prices[id]!;
-      let d = day;
-      while (new Date(`${d}T12:00:00Z`).getUTCDay() % 6 === 0) d = addDays(d, -1);
-      return p.from && d < p.from ? undefined : { day: d, priceE8: toE8(p.price) };
-    },
-  };
-}
 
 const opening = (accountId: string, cents: number, day = '2026-10-31'): Movement => ({
   accountId,
