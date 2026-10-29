@@ -47,16 +47,18 @@ export const EXPORT_TABLES: ExportTable[] = [
   'ajustes',
 ];
 
+// As Excel in Spanish opens it: ";" between cells and a decimal comma (1623,45). Otherwise
 // RFC 4180, plus a leading quote on cells a spreadsheet would run as a formula.
 export function toCsv(rows: Row[]): string {
   const cell = (v: unknown) => {
     let s = v === null || v === undefined ? '' : String(v);
+    if (typeof v === 'number') s = s.replace('.', ',');
     if (/^[=+\-@\t\r]/.test(s) && typeof v === 'string') s = `'${s}`;
-    return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+    return /[";\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
   };
   const head = Object.keys(rows[0] ?? {});
   return [head, ...rows.map((r) => head.map((k) => r[k]))]
-    .map((line) => line.map(cell).join(','))
+    .map((line) => line.map(cell).join(';'))
     .join('\r\n');
 }
 

@@ -51,8 +51,8 @@ test('settings: theme, reminder, export everything and delete the account for re
   const body = await (await page.request.get('/ajustes/exportar/cuentas.csv')).body();
   expect([...body.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // BOM for Excel
   const csv = body.toString('utf8');
-  expect(csv).toContain('id,name,kind,balance_eur');
-  expect(csv).toContain(',Banco,efectivo,2000,');
+  expect(csv).toContain('id;name;kind;balance_eur');
+  expect(csv).toContain(';Banco;efectivo;2000;');
   expect((await page.request.get('/ajustes/exportar/user.csv')).status()).toBe(404);
 
   // Delete: needs the word, then nothing of the user is left and the session is gone.

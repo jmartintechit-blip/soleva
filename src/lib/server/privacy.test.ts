@@ -85,8 +85,8 @@ describe('exportData', () => {
   });
 
   it('writes CSV a spreadsheet opens safely', () => {
-    expect(toCsv([{ a: '=SUM(A1)', b: 'x, "y"', c: -5, d: null }])).toBe(
-      `a,b,c,d\r\n'=SUM(A1),"x, ""y""",-5,`,
+    expect(toCsv([{ a: '=SUM(A1)', b: 'x; "y"', c: -5, d: null, e: 1623.45, f: 'a,b' }])).toBe(
+      `a;b;c;d;e;f\r\n'=SUM(A1);"x; ""y""";-5;;1623,45;a,b`,
     );
     expect(toCsv([])).toBe('');
   });
