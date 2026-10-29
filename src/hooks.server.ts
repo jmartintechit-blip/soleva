@@ -4,6 +4,7 @@ import { Pool } from '@neondatabase/serverless';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { env, waitUntil } from 'cloudflare:workers';
 import { isAuthPath, svelteKitHandler } from 'better-auth/svelte-kit';
+import { asTheme, THEME_COOKIE } from '#lib/labels.ts';
 import { createAuth, type Auth } from '#lib/server/auth.ts';
 import { createNeonDb, type Db } from '#lib/server/db/index.ts';
 import { otpEmail, sendEmail, type Email } from '#lib/server/email.ts';
@@ -71,7 +72,16 @@ export const handle: Handle = async ({ event, resolve }) => {
           await svelteKitHandler({ auth: event.locals.auth(), event, resolve, building }),
         );
       }
-      return secure(await resolve(event));
+      // The chosen theme is painted on the server too, so the app never flashes Amanecer first.
+      const theme = asTheme(event.cookies.get(THEME_COOKIE));
+      if (theme === 'amanecer' || !event.route.id?.startsWith('/(app)'))
+        return secure(await resolve(event));
+      return secure(
+        await resolve(event, {
+          transformPageChunk: ({ html }) =>
+            html.replace('data-theme="amanecer"', `data-theme="${theme}"`),
+        }),
+      );
     });
   } finally {
     if (pool) waitUntil(pool.end());

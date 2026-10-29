@@ -57,3 +57,26 @@ export async function saveBaseline(db: Db, userId: string, b: Baseline | null) {
     [userId, b === null ? null : JSON.stringify(b)],
   );
 }
+
+export const reminderInput = z.object({
+  enabled: z.boolean(),
+  day: z.number('Elige un día del 1 al 28').int().min(1, 'Del 1 al 28').max(28, 'Del 1 al 28'),
+});
+export type Reminder = z.infer<typeof reminderInput>;
+
+export async function getReminder(db: Db, userId: string): Promise<Reminder> {
+  const [row] = await db.query<Reminder>(
+    `select reminder_enabled as enabled, reminder_day as day from settings where user_id = $1`,
+    [userId],
+  );
+  return row ?? { enabled: true, day: 1 };
+}
+
+export async function saveReminder(db: Db, userId: string, r: Reminder) {
+  await db.query(
+    `insert into settings (user_id, reminder_enabled, reminder_day) values ($1, $2, $3)
+     on conflict (user_id) do update set reminder_enabled = $2, reminder_day = $3,
+       updated_at = now()`,
+    [userId, r.enabled, r.day],
+  );
+}

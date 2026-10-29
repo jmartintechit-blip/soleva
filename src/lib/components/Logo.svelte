@@ -3,7 +3,8 @@
 </script>
 
 <span class="logo">
-  <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+  <!-- The brand is always Amanecer, whatever theme the app wears. -->
+  <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" data-theme="amanecer">
     <path class="sv-rise" d="M14 40 A18 18 0 0 1 50 40 Z" fill="var(--accent)" />
     <rect x="6" y="44" width="52" height="3" rx="1.5" fill="var(--ink)" />
   </svg>

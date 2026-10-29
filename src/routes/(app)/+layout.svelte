@@ -3,7 +3,15 @@
   import Logo from '#lib/components/Logo.svelte';
   import type { LayoutProps } from './$types';
 
-  let { children }: LayoutProps = $props();
+  let { children, data }: LayoutProps = $props();
+
+  // Client-side navigation keeps <html>, so the theme follows the data and leaves with the app.
+  $effect(() => {
+    document.documentElement.dataset.theme = data.theme;
+    return () => {
+      document.documentElement.dataset.theme = 'amanecer';
+    };
+  });
 
   // Icon paths from the approved screens (escritorio-proyeccion, movil-inicio).
   const nav = [
@@ -36,7 +44,7 @@
       href: '/ajustes',
       label: 'Ajustes',
       icon: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1',
-      mobile: false,
+      mobile: true,
     },
   ];
   const current = (href: string) => (page.url.pathname.startsWith(href) ? 'page' : undefined);

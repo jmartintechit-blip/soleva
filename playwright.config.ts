@@ -14,7 +14,6 @@ export default defineConfig({
   workers: 1,
   reporter: process.env.CI ? 'github' : 'list',
   use: { baseURL: 'http://localhost:5173', trace: 'retain-on-failure' },
-  // Desktop: «Cerrar sesión» is only in the sidebar until Ajustes (B6).
   projects: [{ name: 'desktop', use: { ...devices['Desktop Chrome'] } }],
   // vite dev, not workerd: without RESEND_API_KEY it logs the code instead of emailing it.
   webServer: {
