@@ -4,8 +4,11 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-10-29
+
 ### Añadido
 
+- Lista de espera abierta en solevaapp.com.
 - Inicio: patrimonio de hoy con conteo, semáforo, estimación a 10 años y tus cuentas.
 - Proyección (móvil y escritorio): escenarios prudente, base y optimista, horizonte de 5, 10 o 20 años, gráfico con rango, «tú aportas / pone la rentabilidad» y tres «¿qué pasa si…?» que recalculan en vivo.
 - Supuestos editables por usuario y «Fijar como mi plan» para el semáforo («Vas en camino» / «Algo por debajo del plan», umbral −3 %).
@@ -70,7 +73,8 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 - Prueba E2E de entrada con Playwright, en CI sobre una rama temporal de Neon copiada de dev.
 - Primer despliegue en Cloudflare Workers.
 
-[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.4.0...HEAD
+[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.5.0
 [0.4.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.4.0
 [0.3.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.3.0
 [0.2.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.2.0
