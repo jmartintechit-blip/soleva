@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { resetUser, signIn } from './auth.ts';
+import { hydrated, hydratedAfter, resetUser, signIn } from './auth.ts';
 
 test('create accounts, a rule from its template, and pause it', async ({ page }) => {
   // Six pages that vite dev compiles cold in CI: past the default 30 s there.
@@ -9,12 +9,11 @@ test('create accounts, a rule from its template, and pause it', async ({ page })
 
   await page.goto('/cuentas');
   await expect(page.getByText('Aún no tienes cuentas')).toBeVisible();
+  // Links are followed client-side once hydrated; the form posts reload the page.
+  await hydrated(page);
   await page.getByRole('link', { name: 'Nueva cuenta' }).click();
-  await page.waitForLoadState('networkidle');
-  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+  await hydratedAfter(page, () => page.getByRole('button', { name: 'Crear cuenta' }).click());
   await expect(page.getByText('Ponle un nombre')).toBeVisible();
-  // The failed post reloads the page: wait for it to hydrate before typing again.
-  await page.waitForLoadState('networkidle');
 
   await page.getByLabel('Nombre').fill('Banco');
   await page.getByLabel('Saldo o valor hoy').fill('1.250,50');
@@ -22,8 +21,8 @@ test('create accounts, a rule from its template, and pause it', async ({ page })
   await expect(page).toHaveURL(/\/cuentas$/);
   await expect(page.getByText('1.250,50 €')).toBeVisible();
 
+  await hydrated(page);
   await page.getByRole('link', { name: 'Nueva cuenta' }).click();
-  await page.waitForLoadState('networkidle');
   await page.getByLabel('Nombre').fill('Indexado');
   await page.getByLabel('Tipo').selectOption('inversion');
   await page.getByLabel('Saldo o valor hoy').fill('5000');
@@ -31,9 +30,8 @@ test('create accounts, a rule from its template, and pause it', async ({ page })
   await expect(page.getByText('6.251 €')).toBeVisible();
 
   await page.goto('/reglas');
-  await page.waitForLoadState('networkidle');
+  await hydrated(page);
   await page.getByRole('link', { name: 'Nueva regla' }).click();
-  await page.waitForLoadState('networkidle');
   await expect(page.getByLabel('Nombre')).toHaveValue('Aportación al fondo indexado');
   await expect(page.getByText(/Estimación, no asesoramiento/)).toBeVisible();
   await page.getByText('Entra', { exact: true }).click();

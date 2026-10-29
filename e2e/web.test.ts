@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { hydrated } from './auth.ts';
 
 test('the calculator recalculates live and says it is an estimate', async ({ page }) => {
   await page.goto('/');
-  await page.waitForLoadState('networkidle');
+  await hydrated(page);
   const calc = page.locator('#calculadora');
   const result = calc.locator('[aria-live="polite"]');
   const tenYears = await result.textContent();

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { neon } from '@neondatabase/serverless';
 import { expect, test } from '@playwright/test';
+import { hydrated } from './auth.ts';
 
 // Resend's test sink, so a local run with a real key emails nobody. Needs WAITLIST_OPEN=1.
 const EMAIL = 'delivered@resend.dev';
@@ -11,7 +12,7 @@ test('join the waiting list, confirm and leave', async ({ page }) => {
   await sql`delete from waitlist where email = ${EMAIL}`;
 
   await page.goto('/');
-  await page.waitForLoadState('networkidle');
+  await hydrated(page);
   await page.getByLabel('Tu correo').fill(EMAIL);
   await page.getByRole('button', { name: 'Quiero probarla' }).click();
   // The browser blocks the submit until consent is given.

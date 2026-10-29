@@ -1,13 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { CODE, EMAIL, setCode, sql } from './auth.ts';
+import { CODE, EMAIL, hydrated, setCode, sql } from './auth.ts';
 
 test('sign in with an email code and sign out', async ({ page }) => {
   // The test branch is a copy of dev: earlier local runs may have used up the code limit.
   await sql()`delete from "rateLimit"`;
   await page.goto('/inicio');
   await expect(page).toHaveURL(/\/entrar$/);
-  // vite dev hydrates late and resets what was typed before.
-  await page.waitForLoadState('networkidle');
+  await hydrated(page);
 
   await page.getByLabel('Email').fill(EMAIL);
   await page.getByRole('button', { name: 'Enviarme el código' }).click();

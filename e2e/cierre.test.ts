@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { EMAIL, resetUser, signIn, sql } from './auth.ts';
+import { EMAIL, hydrated, resetUser, signIn, sql } from './auth.ts';
 
 test('close the month: proposal, an inline correction, confirm once', async ({ page }) => {
   test.setTimeout(90_000);
@@ -15,7 +15,7 @@ test('close the month: proposal, an inline correction, confirm once', async ({ p
     values (${id}, 'Nómina', 'entra', 150000, 'mensual', 1, '2020-01-01', ${cash!.id})`;
 
   await page.goto('/cierre');
-  await page.waitForLoadState('networkidle');
+  await hydrated(page);
   await expect(page.getByRole('heading', { name: /^Cierre de / })).toBeVisible();
   await expect(page.getByText('+1.500,00 € por tus reglas')).toBeVisible();
   await expect(page.getByText('13.500,00 €')).toBeVisible();
@@ -37,12 +37,13 @@ test('close the month: proposal, an inline correction, confirm once', async ({ p
   await expect(page.getByText('13.750 €')).toBeVisible();
   await expect(page.getByRole('img', { name: /^Evolución de tu patrimonio/ })).toBeVisible();
   await page.goto('/cierre');
+  await hydrated(page);
   await expect(page.getByText('Saldos confirmados')).toHaveCount(0);
 
   // History: open the closed month and amend a balance with its reason.
   await page.getByRole('heading', { name: 'Meses cerrados' }).scrollIntoViewIfNeeded();
+  // Hydrated already, so this is a client-side navigation.
   await page.locator('a[href^="/cierre/"]').first().click();
-  await page.waitForLoadState('networkidle');
   await page.getByText('Banco', { exact: true }).click();
   await page.getByLabel('Saldo real de Banco').fill('3.400');
   await page.getByRole('button', { name: 'Guardar cambio' }).first().click();
