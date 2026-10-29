@@ -39,6 +39,9 @@
   // Folded under «Más opciones»: today, from this month, no end.
   // svelte-ignore state_referenced_locally
   let day = $state(v.day ?? String(r?.day ?? data.today));
+  // Bound, not set from errors: an `open={…}` is re-applied whenever the summary text changes.
+  // svelte-ignore state_referenced_locally
+  let showMore = $state(!!(errors.day || errors.startMonth || errors.endMonth));
   // svelte-ignore state_referenced_locally
   let startMonth = $state(v.startMonth ?? r?.startMonth ?? data.month);
   let endMonth = $state(v.endMonth ?? r?.endMonth ?? '');
@@ -196,7 +199,7 @@
       </div>
     </div>
 
-    <details class="f3 more" open={!!(errors.day || errors.startMonth || errors.endMonth)}>
+    <details class="f3 more" bind:open={showMore}>
       <summary>
         <span>Más opciones</span>
         <span class="more__now">{when}</span>
