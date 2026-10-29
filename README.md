@@ -19,7 +19,7 @@ Apuntas una vez cómo entra y sale tu dinero (nómina, aportaciones, gastos fijo
 
 ## Funcionalidades
 
-Hoy (bloques 0 a 6, más la base del bloque 8):
+Hoy (bloques 0 a 6, más los bloques 8 y 9 sin pantallas):
 
 - Portada pública con calculadora de interés compuesto en euros de hoy (escenarios 3, 6 y 8 % e inflación 2,5 %).
 - Lista de espera con consentimiento y doble confirmación por email (abierta).
@@ -32,7 +32,7 @@ Hoy (bloques 0 a 6, más la base del bloque 8):
 - Cierre de mes: saldos propuestos por tus reglas, corrección en línea, confirmación, histórico con enmiendas y recordatorio por email.
 - Ajustes: tres temas, recordatorio, exportar todo en JSON o CSV, cerrar sesiones y borrar la cuenta de verdad.
 - Sistema de diseño Horizonte, oscuro, con fuentes alojadas en el propio sitio.
-- Base de datos del libro de movimientos (v0.8.0): movimientos, posiciones, instrumentos, reglas generadoras, intereses, dividendos, deudas, coche y bienes, todavía sin pantallas.
+- Base de datos del libro de movimientos (v0.8.0) y motor diario (v0.9.0): movimientos generados cada día, intereses sobre el saldo real, deudas, dividendos, valoración, rentabilidad y alertas, con tests; todavía sin pantallas.
 
 En camino antes de la beta: Soleva llevará el dinero sola, movimiento a movimiento. Metes tu situación una vez y cada día genera transferencias, compras de tus planes, intereses, cuotas y dividendos, y valora tus posiciones.
 
@@ -64,7 +64,7 @@ npm run dev
 
 ## Estado
 
-En construcción: bloques 0 a 6 y 8 cerrados (v0.8.0), desplegado con el registro cerrado y la lista de espera abierta. El pulido (bloque 7) pasa al final, sobre las pantallas nuevas. Ver [CHANGELOG.md](CHANGELOG.md).
+En construcción: bloques 0 a 6, 8 y 9 cerrados (v0.9.0), desplegado con el registro cerrado y la lista de espera abierta. El pulido (bloque 7) pasa al final, sobre las pantallas nuevas. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Hoja de ruta
 

@@ -19,7 +19,7 @@ You note once how your money comes in and goes out (salary, contributions, fixed
 
 ## Features
 
-Today (blocks 0 to 6, plus the base of block 8):
+Today (blocks 0 to 6, plus blocks 8 and 9 without screens):
 
 - Public home page with a compound interest calculator in today's euros (3, 6 and 8 % scenarios, 2.5 % inflation).
 - Waitlist with consent and email double opt-in (open).
@@ -32,7 +32,7 @@ Today (blocks 0 to 6, plus the base of block 8):
 - Month close: balances proposed from your rules, inline correction, confirmation, history with amendments and an email reminder.
 - Settings: three themes, reminder, export everything as JSON or CSV, end sessions and delete the account for real.
 - Horizonte dark design system with self-hosted fonts.
-- Ledger database (v0.8.0): movements, holdings, instruments, generating rules, interest, dividends, debts, car and goods, with no screens yet.
+- Ledger database (v0.8.0) and daily engine (v0.9.0): movements generated every day, interest on the real balance, debts, dividends, valuation, returns and alerts, with tests; no screens yet.
 
 Coming before the beta: Soleva will keep track of your money on its own, movement by movement. You enter your situation once and every day it generates transfers, your plans' purchases, interest, payments and dividends, and values your holdings.
 
@@ -64,7 +64,7 @@ npm run dev
 
 ## Status
 
-Under construction: blocks 0 to 6 and 8 done (v0.8.0), deployed with sign-up closed and the waitlist open. Polish (block 7) moves to the end, on the new screens. See [CHANGELOG.md](CHANGELOG.md).
+Under construction: blocks 0 to 6, 8 and 9 done (v0.9.0), deployed with sign-up closed and the waitlist open. Polish (block 7) moves to the end, on the new screens. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Roadmap
 

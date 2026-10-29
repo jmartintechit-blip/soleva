@@ -4,6 +4,20 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.9.0] - 2026-10-30
+
+### Añadido
+
+- Motor diario (funciones puras, sin interfaz todavía): genera cada día ingresos, transferencias, gastos y cuotas, compras de planes de inversión semanales a anuales en varios productos (al cierre de ese día; los sábados y domingos, el lunes), cuotas de deudas, dividendos con su retención e intereses.
+- Intereses calculados cada día sobre el saldo real de cierre, con tramos, fin de promoción y retención del 19 %.
+- Deudas por el sistema francés, a tipo fijo o con Euríbor, diferencial, revisiones y suelo; los intereses son gasto y el capital amortizado reduce la deuda.
+- Nunca dos veces: si el motor se salta días, al recuperarlos da exactamente lo mismo que ejecutándose a diario.
+- Valoración en euros con el cambio del BCE, cantidades con 8 decimales, productos sin precio público como estimación, coche con las tablas de Hacienda y bienes con su curva.
+- Rentabilidad ponderada por dinero (TIR) separando lo que aportas de lo que gana tu dinero; reparto por tipo de activo.
+- Alertas: cuenta que se queda sin saldo, plan que gasta más de lo que entra, fin de una promoción y precio sin actualizar.
+- Cuadre con el saldo o las participaciones reales y recolocación de compras provisionales.
+- Test de aceptación con un caso de referencia completo (importes inventados).
+
 ## [0.8.0] - 2026-10-30
 
 ### Añadido
