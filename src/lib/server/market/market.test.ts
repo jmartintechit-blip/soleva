@@ -117,3 +117,21 @@ EXR.D.RUB.EUR.SP00.A,D,RUB,EUR,SP00,A,2026-10-29,NaN`;
     });
   });
 });
+
+describe('bde', () => {
+  it('reads the official monthly Euribor to a tenth of a basis point, negatives too', async () => {
+    const { parseBde } = await import('./bde.ts');
+    expect(
+      parseBde([
+        {
+          fechas: ['2026-09-01T08:15:00Z', '2021-11-01T09:15:00Z', '2020-01-01T09:15:00Z'],
+          valores: [3.247, -0.487, null],
+        },
+      ]),
+    ).toEqual([
+      { month: '2026-09-01', rateBp: 324.7 },
+      { month: '2021-11-01', rateBp: -48.7 },
+    ]);
+    expect(() => parseBde({ errNum: 412 })).toThrow();
+  });
+});
