@@ -19,7 +19,7 @@ Apuntas una vez cómo entra y sale tu dinero (nómina, aportaciones, gastos fijo
 
 ## Funcionalidades
 
-Hoy (bloques 0 a 4):
+Hoy (bloques 0 a 6):
 
 - Portada pública con calculadora de interés compuesto en euros de hoy (escenarios 3, 6 y 8 % e inflación 2,5 %).
 - Lista de espera con consentimiento y doble confirmación por email (abierta).
@@ -27,10 +27,13 @@ Hoy (bloques 0 a 4):
 - Entrada sin contraseña con un código de 6 cifras por email.
 - Rutas privadas con sesión, navegación inferior en móvil y lateral en escritorio.
 - Cuentas y reglas: crear, editar, pausar, archivar y borrar; hoja «Nueva regla» con plantillas.
-- Motor de reglas y proyección mes a mes por escenario, con tests de invariantes con su pantalla de proyección: escenarios, horizonte, «¿qué pasa si…?», supuestos editables y semáforo.
+- Motor de reglas y proyección mes a mes por escenario, con tests de invariantes.
+- Inicio y Proyección: patrimonio, evolución, escenarios, horizonte, «¿qué pasa si…?», supuestos editables y semáforo.
+- Cierre de mes: saldos propuestos por tus reglas, corrección en línea, confirmación, histórico con enmiendas y recordatorio por email.
+- Ajustes: tres temas, recordatorio, exportar todo en JSON o CSV, cerrar sesiones y borrar la cuenta de verdad.
 - Sistema de diseño Horizonte, oscuro, con fuentes alojadas en el propio sitio.
 
-En camino (MVP v0): cuentas, reglas de entrada, salida y traspaso, cierre de mes en un minuto, proyección a 5, 10 y 20 años con tres escenarios, semáforo frente a tu plan, exportar tus datos y borrar tu cuenta.
+En camino (MVP v0): pulido pantalla a pantalla, accesibilidad, rendimiento y app instalable.
 
 ## Stack
 
@@ -56,11 +59,11 @@ npm run dev
 - Sin `RESEND_API_KEY`, el código de entrada sale en la consola de `npm run dev`.
 - `npm test` no necesita claves: usa Postgres en memoria (PGlite).
 - `npm run check` pasa lint, tipos, formato, tests y build, igual que el CI.
-- `npm run e2e` prueba la entrada, la lista de espera y la calculadora con Playwright contra la rama de `.env` (con `delivered@resend.dev` en `ALLOWED_EMAILS`); el CI lo corre en una rama temporal de Neon copiada de dev.
+- `npm run e2e` prueba con Playwright la entrada, la lista de espera, la calculadora, cuentas y reglas, proyección, cierre de mes y ajustes contra la rama de `.env` (con `delivered@resend.dev` en `ALLOWED_EMAILS`); el CI lo corre en una rama temporal de Neon copiada de dev.
 
 ## Estado
 
-En construcción: bloques 0 a 4 de 7 del MVP v0 cerrados (v0.5.0), desplegado con el registro cerrado y la lista de espera abierta. Ver [CHANGELOG.md](CHANGELOG.md).
+En construcción: bloques 0 a 6 de 7 del MVP v0 cerrados (v0.7.0), desplegado con el registro cerrado y la lista de espera abierta. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Hoja de ruta
 

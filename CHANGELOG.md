@@ -4,6 +4,19 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.7.0] - 2026-10-29
+
+### Añadido
+
+- Ajustes: tema Amanecer, Crepúsculo o Rosé (por dispositivo; la marca y la web siguen en Amanecer), día del recordatorio (1–28) o apagarlo.
+- Exportar todo lo apuntado: un JSON completo o un CSV por tabla (cuentas, reglas, cierres, correcciones y ajustes), importes en céntimos.
+- Borrar la cuenta de verdad: en cascada con sesiones, cierres y códigos de acceso pendientes, con test.
+- Cerrar sesión en este o en todos los dispositivos.
+
+### Cambiado
+
+- Ajustes entra en la barra inferior del móvil.
+
 ## [0.6.0] - 2026-10-29
 
 ### Añadido

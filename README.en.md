@@ -19,7 +19,7 @@ You note once how your money comes in and goes out (salary, contributions, fixed
 
 ## Features
 
-Today (blocks 0 to 4):
+Today (blocks 0 to 6):
 
 - Public home page with a compound interest calculator in today's euros (3, 6 and 8 % scenarios, 2.5 % inflation).
 - Waitlist with consent and email double opt-in (open).
@@ -27,10 +27,13 @@ Today (blocks 0 to 4):
 - Passwordless sign-in with a 6-digit code by email.
 - Private routes behind a session, bottom navigation on mobile and a sidebar on desktop.
 - Accounts and rules: create, edit, pause, archive and delete; a New rule sheet with templates.
-- Rules and month-by-month projection engine by scenario, with invariant tests with its projection screen: scenarios, horizon, what-ifs, editable assumptions and the on-track light.
+- Rules and month-by-month projection engine by scenario, with invariant tests.
+- Home and Projection: net worth, history, scenarios, horizon, what-ifs, editable assumptions and the on-track light.
+- Month close: balances proposed from your rules, inline correction, confirmation, history with amendments and an email reminder.
+- Settings: three themes, reminder, export everything as JSON or CSV, end sessions and delete the account for real.
 - Horizonte dark design system with self-hosted fonts.
 
-Coming (MVP v0): accounts, income, expense and transfer rules, a one-minute month close, 5, 10 and 20-year projections with three scenarios, an on-track signal against your plan, data export and account deletion.
+Coming (MVP v0): screen-by-screen polish, accessibility, performance and an installable app.
 
 ## Stack
 
@@ -56,11 +59,11 @@ npm run dev
 - Without `RESEND_API_KEY`, the sign-in code is printed in the `npm run dev` console.
 - `npm test` needs no keys: it uses in-memory Postgres (PGlite).
 - `npm run check` runs lint, types, format, tests and build, like CI.
-- `npm run e2e` tests sign-in, the waitlist and the calculator with Playwright against the `.env` branch (with `delivered@resend.dev` in `ALLOWED_EMAILS`); CI runs it on a throwaway Neon branch copied from dev.
+- `npm run e2e` tests with Playwright sign-in, the waitlist, the calculator, accounts and rules, projection, month close and settings against the `.env` branch (with `delivered@resend.dev` in `ALLOWED_EMAILS`); CI runs it on a throwaway Neon branch copied from dev.
 
 ## Status
 
-Under construction: blocks 0 to 4 of 7 of MVP v0 done (v0.5.0), deployed with sign-up closed and the waitlist open. See [CHANGELOG.md](CHANGELOG.md).
+Under construction: blocks 0 to 6 of 7 of MVP v0 done (v0.7.0), deployed with sign-up closed and the waitlist open. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Roadmap
 
