@@ -156,7 +156,7 @@ describe('ledger', () => {
     ).rejects.toThrow();
 
     await db.query(
-      `update movement set price_e8 = 10_100_000_000, provisional = false where id = $1`,
+      `update movement set price_e8 = 10_100_000_000, qty_e8 = 49_504_950, provisional = false where id = $1`,
       [buy!.id],
     );
     await expect(
