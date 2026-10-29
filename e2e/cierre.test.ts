@@ -31,9 +31,29 @@ test('close the month: proposal, an inline correction, confirm once', async ({ p
   await expect(page.getByText('Tu primer mes cerrado')).toBeVisible();
   await expect(page.getByText('13.750 €')).toBeVisible();
 
-  // The balances moved, and the next visit closes the following month (or nothing).
+  // The balances moved, Inicio draws the evolution, and the next visit closes the following
+  // month (or nothing).
   await page.goto('/inicio');
   await expect(page.getByText('13.750 €')).toBeVisible();
+  await expect(page.getByRole('img', { name: /^Evolución de tu patrimonio/ })).toBeVisible();
   await page.goto('/cierre');
   await expect(page.getByText('Saldos confirmados')).toHaveCount(0);
+
+  // History: open the closed month and amend a balance with its reason.
+  await page.getByRole('heading', { name: 'Meses cerrados' }).scrollIntoViewIfNeeded();
+  await page.locator('a[href^="/cierre/"]').first().click();
+  await page.waitForLoadState('networkidle');
+  await page.getByText('Banco', { exact: true }).click();
+  await page.getByLabel('Saldo real de Banco').fill('3.400');
+  await page.getByRole('button', { name: 'Guardar cambio' }).first().click();
+  await expect(page.getByText(/Cuenta en pocas palabras/)).toBeVisible();
+  await page.getByLabel('Motivo del cambio en Banco').fill('Olvidé un recibo');
+  await page.getByRole('button', { name: 'Guardar cambio' }).first().click();
+  await expect(page.getByText('Cambio guardado')).toBeVisible();
+  await expect(page.getByText('Corregido una vez')).toBeVisible();
+  await page.getByText('Banco', { exact: true }).click();
+  await expect(page.getByText('Olvidé un recibo')).toBeVisible();
+  await expect(page.getByText('13.650,00 €').last()).toBeVisible();
+
+  await expect((await page.goto('/cierre/2020-13'))!.status()).toBe(404);
 });

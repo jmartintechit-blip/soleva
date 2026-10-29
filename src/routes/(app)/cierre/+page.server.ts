@@ -23,7 +23,7 @@ export const load: PageServerLoad = async (event) => {
   const db = event.locals.db();
   const userId = await requireUserId(event);
   const [open, history] = await Promise.all([current(db, userId), netWorthHistory(db, userId)]);
-  return { month: open?.month ?? null, lines: open?.lines ?? [], last: history.at(-1) ?? null };
+  return { month: open?.month ?? null, lines: open?.lines ?? [], history: history.reverse() };
 };
 
 export const actions: Actions = {

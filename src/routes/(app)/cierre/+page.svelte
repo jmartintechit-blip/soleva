@@ -250,6 +250,20 @@
   </form>
 {/if}
 
+{#if !form?.done && data.history.length}
+  <section class="f4 closed" aria-labelledby="cerrados">
+    <h2 id="cerrados" class="sv-label">Meses cerrados</h2>
+    {#each data.history as h (h.month)}
+      <a class="sv-row" href="/cierre/{h.month}">
+        <span class="sv-row__main">
+          <span class="sv-row__title">{title(h.month)} {h.month.slice(0, 4)}</span>
+        </span>
+        <span class="sv-row__value">{formatEuros(h.netCents)}</span>
+      </a>
+    {/each}
+  </section>
+{/if}
+
 <style>
   h1,
   p {
@@ -391,6 +405,19 @@
     text-align: center;
     font-size: 12px;
     color: var(--ink-subtle);
+  }
+  .closed {
+    display: flex;
+    flex-direction: column;
+    max-width: 560px;
+    margin-top: var(--space-6);
+  }
+  .closed h2 {
+    margin: 0 0 var(--space-2);
+  }
+  .closed .sv-row {
+    color: inherit;
+    text-decoration: none;
   }
   .visually-hidden {
     position: absolute;
