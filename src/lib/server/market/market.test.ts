@@ -135,3 +135,44 @@ describe('bde', () => {
     expect(() => parseBde({ errNum: 412 })).toThrow();
   });
 });
+
+describe('searchInstruments', () => {
+  it('keeps the search order, maps kinds, spots ETCs and drops what we cannot hold', async () => {
+    const { searchInstruments } = await import('./search.ts');
+    let asked = '';
+    const f = async (url: string | URL | Request) => {
+      asked = String(url);
+      return Response.json({
+        quotes: [
+          {
+            symbol: 'IWDA.AS',
+            exchange: 'AMS',
+            quoteType: 'ETF',
+            longname: 'iShares Core MSCI World UCITS ETF USD (Acc)',
+          },
+          {
+            symbol: 'IGLN.L',
+            exchange: 'LSE',
+            quoteType: 'EQUITY',
+            longname: 'iShares Physical Gold ETC',
+          },
+          {
+            symbol: 'TTWO',
+            exchange: 'NAS',
+            quoteType: 'EQUITY',
+            longname: 'Take-Two Interactive Software, Inc.',
+          },
+          { symbol: '^GSPC', exchange: 'SNP', quoteType: 'INDEX', shortname: 'S&P 500' },
+          { symbol: 'X', quoteType: 'ETF' },
+        ],
+      });
+    };
+    expect((await searchInstruments(' IE00B4L5Y983 ', f)).map((c) => [c.symbol, c.kind])).toEqual([
+      ['IWDA.AS', 'etf'],
+      ['IGLN.L', 'etc'],
+      ['TTWO', 'accion'],
+    ]);
+    expect(asked).toContain('q=IE00B4L5Y983&');
+    expect(await searchInstruments('a', f)).toEqual([]);
+  });
+});
