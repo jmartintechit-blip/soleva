@@ -87,11 +87,17 @@ export async function setArchived(db: Db, userId: string, id: string, archived: 
   return rows.length > 0;
 }
 
-// Its rules go with it (on delete cascade).
+// Its rules go with it (on delete cascade). An account in a closed month stays, so history never
+// changes: the deferred foreign key of month_close_line refuses it and this returns 'closed'.
 export async function deleteAccount(db: Db, userId: string, id: string) {
-  const rows = await db.query(
-    `delete from money_account where user_id = $1 and id = $2 returning id`,
-    [userId, id],
-  );
-  return rows.length > 0;
+  try {
+    const rows = await db.query(
+      `delete from money_account where user_id = $1 and id = $2 returning id`,
+      [userId, id],
+    );
+    return rows.length > 0;
+  } catch (error) {
+    if ((error as { code?: string }).code === '23503') return 'closed';
+    throw error;
+  }
 }

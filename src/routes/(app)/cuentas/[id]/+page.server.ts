@@ -72,8 +72,16 @@ export const actions: Actions = {
   },
 
   borrar: async (event) => {
-    if (!(await deleteAccount(event.locals.db(), await requireUserId(event), event.params.id)))
-      error(404, 'No encontrada');
+    const deleted = await deleteAccount(
+      event.locals.db(),
+      await requireUserId(event),
+      event.params.id,
+    );
+    if (deleted === 'closed')
+      return fail(409, {
+        deleteError: 'Está en meses cerrados: archívala para conservar tu histórico.',
+      });
+    if (!deleted) error(404, 'No encontrada');
     redirect(303, '/cuentas');
   },
 };

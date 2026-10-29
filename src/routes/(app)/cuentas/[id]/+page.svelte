@@ -134,6 +134,7 @@
     >
       <button class="sv-btn sv-btn--ghost sv-btn--sm">Borrar</button>
     </form>
+    {#if form?.deleteError}<p class="err" role="alert">{form.deleteError}</p>{/if}
     <p class="sv-field__hint">
       Archivar la saca del patrimonio y de la proyección sin perder nada.
     </p>
