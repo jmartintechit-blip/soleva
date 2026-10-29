@@ -98,7 +98,8 @@
   }
   main {
     position: relative;
-    overflow: hidden;
+    /* clip, not hidden: the glow sticks out 60 px and focusing an input scrolled main sideways. */
+    overflow: clip;
     flex: 1 1 auto;
     min-width: 0;
     padding: var(--space-5) var(--space-5) 96px;

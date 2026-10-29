@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { EMAIL, signIn, sql } from './auth.ts';
+import { resetUser, signIn } from './auth.ts';
 
 test('create accounts, a rule from its template, and pause it', async ({ page }) => {
   // Six pages that vite dev compiles cold in CI: past the default 30 s there.
   test.setTimeout(90_000);
-  await sql()`delete from money_account where user_id in (select id from "user" where email = ${EMAIL})`;
+  await resetUser();
   await signIn(page);
 
   await page.goto('/cuentas');

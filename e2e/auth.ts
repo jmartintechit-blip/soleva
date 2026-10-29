@@ -16,6 +16,9 @@ export async function setCode(email: string, code: string) {
   expect(rows).toHaveLength(1);
 }
 
+// A clean start: deleting the user cascades to everything (confirmed closes can't be deleted alone).
+export const resetUser = () => sql()`delete from "user" where email = ${EMAIL}`;
+
 export async function signIn(page: Page) {
   // The test branch is a copy of dev: earlier local runs may have used up the code limit.
   await sql()`delete from "rateLimit"`;

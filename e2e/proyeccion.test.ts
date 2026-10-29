@@ -1,15 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { EMAIL, signIn, sql } from './auth.ts';
+import { EMAIL, resetUser, signIn, sql } from './auth.ts';
 
 test('home and projection follow the accounts and rules, live', async ({ page }) => {
   // Pages that vite dev compiles cold in CI.
   test.setTimeout(90_000);
   const db = sql();
-  const [user] = await db`select id from "user" where email = ${EMAIL}`;
-  if (user) {
-    await db`delete from money_account where user_id = ${user.id}`;
-    await db`delete from settings where user_id = ${user.id}`;
-  }
+  await resetUser();
   await signIn(page);
   const [{ id }] = await db`select id from "user" where email = ${EMAIL}`;
   const [cash] = await db`insert into money_account (user_id, name, kind, balance_cents)

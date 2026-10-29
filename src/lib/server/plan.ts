@@ -5,9 +5,9 @@ import type { Db } from './db/index.ts';
 import { listRules } from './rules.ts';
 import { getSettings } from './settings.ts';
 
-// The current month in Spain: projections start after it.
-export const thisMonth = () =>
-  new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' }).slice(0, 7);
+// Today in Spain (YYYY-MM-DD) and its month: projections start after it.
+export const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+export const thisMonth = () => today().slice(0, 7);
 
 // Everything the projection screens need, in engine shape.
 export async function loadPlan(db: Db, userId: string) {
