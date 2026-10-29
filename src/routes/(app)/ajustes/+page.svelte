@@ -15,6 +15,7 @@
     ['cierres', 'Cierres'],
     ['enmiendas', 'Correcciones'],
     ['ajustes', 'Ajustes'],
+    ['movimientos', 'Movimientos'],
   ];
 </script>
 

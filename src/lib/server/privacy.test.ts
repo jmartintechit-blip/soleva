@@ -4,7 +4,8 @@ import { amendClose, confirmClose } from './closes.ts';
 import type { Db } from './db/index.ts';
 import { migrate } from './db/migrate.ts';
 import { createPgliteDb } from './db/pglite.ts';
-import { deleteUser, endSessions, exportData, toCsv } from './privacy.ts';
+import { migrateUserToLedger } from './ledger-migration.ts';
+import { EXPORT_TABLES, deleteUser, endSessions, exportData, toCsv } from './privacy.ts';
 import { createRule } from './rules.ts';
 import { saveAssumptions, saveReminder } from './settings.ts';
 
@@ -82,6 +83,61 @@ describe('exportData', () => {
       expect.objectContaining({ month: '2026-09', new_eur: 100, reason: 'Olvidé un recibo' }),
     ]);
     expect(JSON.stringify(data)).not.toContain('eva');
+  });
+
+  it('exports the ledger and everything around it, only the user’s own, every table as CSV', async () => {
+    const [{ id: etf }] = await db.query<{ id: string }>(
+      `insert into instrument (kind, name, isin, currency, price_source, source_id)
+       values ('etf', 'World', 'IE00B4L5Y983', 'USD', 'yahoo', 'IWDA.AS') returning id`,
+    );
+    for (const id of ['ana', 'eva']) {
+      await migrateUserToLedger(db, id, '2026-10-01');
+      const [{ id: cash }] = await db.query<{ id: string }>(
+        `select id from money_account where user_id = $1`,
+        [id],
+      );
+      await db.query(
+        `insert into movement (account_id, day, kind, amount_cents, instrument_id, qty_e8, price_e8,
+           fx_e8, source)
+         values ($1, '2026-10-02', 'compra', -5025, $2, 50_000_000, 10_050_000_000, 108_500_000, 'manual')`,
+        [cash, etf],
+      );
+      await db.query(
+        `insert into price_override (user_id, instrument_id, day, close_e8) values ($1, $2, '2026-10-02', 10_100_000_000)`,
+        [id, etf],
+      );
+      await db.query(
+        `insert into alert (user_id, kind, day, dedupe_key) values ($1, 'precio_viejo', '2026-10-02', 'p')`,
+        [id],
+      );
+    }
+
+    const data = await exportData(db, 'ana');
+    expect([...EXPORT_TABLES].sort()).toEqual(Object.keys(data).sort());
+    expect(data.movimientos).toEqual([
+      expect.objectContaining({ kind: 'apertura', amount_eur: 100, source: 'migracion' }),
+      expect.objectContaining({
+        kind: 'compra',
+        amount_eur: -50.25,
+        instrument: 'World',
+        quantity: 0.5,
+        price: 100.5,
+        fx_per_eur: 1.085,
+      }),
+    ]);
+    expect(data.reglas_auto).toEqual([
+      expect.objectContaining({ name: 'Nómina', kind: 'ingreso', amount_eur: 1500 }),
+    ]);
+    expect(data.historico_mensual).toEqual([
+      expect.objectContaining({ month: '2026-09', value_eur: 100 }),
+    ]);
+    expect(data.precios_propios).toEqual([expect.objectContaining({ price: 101 })]);
+    expect(data.alertas).toHaveLength(1);
+    expect(JSON.stringify(data)).not.toContain('eva');
+
+    // Ana leaving takes her ledger; Eva's stays whole.
+    await deleteUser(db, 'ana');
+    expect((await exportData(db, 'eva')).movimientos).toHaveLength(2);
   });
 
   it('writes CSV a spreadsheet opens safely', () => {
