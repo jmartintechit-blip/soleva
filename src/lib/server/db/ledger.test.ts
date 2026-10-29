@@ -245,3 +245,96 @@ describe('auto rules', () => {
     expect(await db.query(`select 1 from auto_rule`)).toEqual([]);
   });
 });
+
+describe('products', () => {
+  const account = async (kind = 'remunerada') =>
+    (
+      await db.query<{ id: string }>(
+        `insert into money_account (user_id, name, kind, balance_cents) values ('ana', 'C', $1, 0)
+         returning id`,
+        [kind],
+      )
+    )[0]!.id;
+
+  it('takes interest tiers, a promotion with its end and the 19 % withheld by default', async () => {
+    const id = await account();
+    await db.query(
+      `insert into interest_config (account_id, promo_until, after_rate_bp) values ($1, '2027-03-31', 150)`,
+      [id],
+    );
+    await db.query(`insert into interest_tier values ($1, 5_000_000, 250), ($1, null, 0)`, [id]);
+    await expect(
+      db.query(`insert into interest_tier values ($1, null, 100)`, [id]),
+    ).rejects.toThrow();
+    expect(await db.query(`select withholding_bp, base_days from interest_config`)).toEqual([
+      { withholding_bp: 1900, base_days: 365 },
+    ]);
+    await expect(
+      db.query(`insert into interest_config (account_id, promo_until) values ($1, '2027-01-01')`, [
+        await account(),
+      ]),
+    ).rejects.toThrow();
+  });
+
+  it('describes fixed and variable debts, and negative Euribor months', async () => {
+    const [loan, payer] = [await account('deuda_prestamo'), await account('efectivo')];
+    await db.query(`insert into index_rate values ('euribor_12m', '2021-04-01', -48)`);
+    await db.query(
+      `insert into debt (account_id, principal_cents, start_on, first_payment_on, term_months,
+         rate_type, initial_rate_bp, index, spread_bp, review_months, payer_account_id)
+       values ($1, 15_000_000, '2026-01-15', '2026-02-15', 300, 'variable', 250, 'euribor_12m', 80,
+               12, $2)`,
+      [loan, payer],
+    );
+    // A variable rate without its index, or a floor on a fixed one, is refused.
+    for (const extra of [
+      `'variable', 250, null, null, null, null`,
+      `'fijo', 250, null, null, null, 100`,
+    ])
+      await expect(
+        db.query(
+          `insert into debt (account_id, principal_cents, start_on, first_payment_on, term_months,
+             rate_type, initial_rate_bp, index, spread_bp, review_months, floor_bp)
+           values ($1, 100, '2026-01-01', '2026-02-01', 12, ${extra})`,
+          [await account('deuda_prestamo')],
+        ),
+      ).rejects.toThrow();
+    // Deleting the account that pays leaves the debt without a payer, not without its history.
+    await db.query(`delete from money_account where id = $1`, [payer]);
+    expect(await db.query(`select payer_account_id from debt`)).toEqual([
+      { payer_account_id: null },
+    ]);
+  });
+
+  it('keeps dividends and estimates per holding', async () => {
+    const id = await account('broker');
+    const [{ id: bank }] = await db.query<{ id: string }>(
+      `insert into instrument (kind, name, currency, price_source, source_id)
+       values ('accion', 'Banco', 'EUR', 'yahoo', 'SAN.MC') returning id`,
+    );
+    await db.query(
+      `insert into dividend_config (account_id, instrument_id, per_unit_e8, pay_months, pay_day)
+       values ($1, $2, 10_000_000, '{5,11}', 2)`,
+      [id, bank],
+    );
+    await expect(
+      db.query(
+        `insert into dividend_config (account_id, instrument_id, per_unit_e8, pay_months, pay_day)
+         values ($1, $2, 10_000_000, '{13}', 2)`,
+        [await account('broker'), bank],
+      ),
+    ).rejects.toThrow();
+    const [{ id: pm }] = await db.query<{ id: string }>(
+      `insert into instrument (kind, name, currency, owner_user_id)
+       values ('estimado', 'Private markets', 'EUR', 'ana') returning id`,
+    );
+    await db.query(`insert into estimate_config values ($1, $2, 900)`, [id, pm]);
+    await db.query(`delete from "user" where id = 'ana'`);
+    for (const t of [
+      'dividend_config',
+      'estimate_config',
+      'instrument where owner_user_id is not null',
+    ])
+      expect(await db.query(`select 1 from ${t}`)).toEqual([]);
+  });
+});
