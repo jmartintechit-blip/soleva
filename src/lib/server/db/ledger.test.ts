@@ -338,3 +338,30 @@ describe('products', () => {
       expect(await db.query(`select 1 from ${t}`)).toEqual([]);
   });
 });
+
+describe('valuation', () => {
+  it('links a car to its Hacienda model and keeps goods on a curve per kind', async () => {
+    const [{ id: car }] = await db.query<{ id: string }>(
+      `insert into money_account (user_id, name, kind, balance_cents) values ('ana', 'Coche', 'vehiculo', 0)
+       returning id`,
+    );
+    const [{ id: model }] = await db.query<{ id: string }>(
+      `insert into vehicle_base (order_year, brand, model, period, fuel, cc, kw, value_cents)
+       values (2026, 'MARCA', 'MODELO 1.6 TDI', '2012-2015', 'D', 1598, 77, 2_150_000) returning id`,
+    );
+    await db.query(`insert into vehicle_depreciation values (2026, 12, 1000)`);
+    await db.query(`insert into vehicle values ($1, $2, '2013-05-10', null)`, [car, model]);
+    // The table of a new year replaces the old one: the car stays, waiting for its new model.
+    await db.query(`delete from vehicle_base`);
+    expect(await db.query(`select vehicle_base_id from vehicle`)).toEqual([
+      { vehicle_base_id: null },
+    ]);
+
+    expect(await db.query(`select pct_bp from asset_curve where category = 'joyas'`)).toEqual([
+      { pct_bp: 10000 },
+    ]);
+    await expect(
+      db.query(`insert into asset values ($1, 'barco', 100, '2026-01-01')`, [car]),
+    ).rejects.toThrow();
+  });
+});
