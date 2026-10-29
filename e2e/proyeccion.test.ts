@@ -32,14 +32,15 @@ test('home and projection follow the accounts and rules, live', async ({ page })
 
   await page.getByRole('button', { name: 'Fijar como mi plan' }).click();
   await expect(page.getByText('Vas en camino')).toBeVisible();
+  await page.waitForLoadState('networkidle');
 
-  // The post reloads the page, and hydrating closes details opened a moment too early: retry.
+  // The post reloads the page, and hydrating closes details opened a moment too early: retry,
+  // filling inside the retry so a late close cannot leave the field hidden.
   const save = page.getByRole('button', { name: 'Guardar supuestos' });
   await expect(async () => {
     if (!(await save.isVisible())) await page.getByText(/Supuestos/).click();
-    await expect(save).toBeVisible({ timeout: 1000 });
+    await page.getByRole('textbox', { name: /^Base/ }).fill('9', { timeout: 1000 });
+    await save.click({ timeout: 1000 });
   }).toPass();
-  await page.getByRole('textbox', { name: /^Base/ }).fill('9');
-  await save.click();
   await expect(page.getByText('Ordénalos: prudente ≤ base ≤ optimista')).toBeVisible();
 });
