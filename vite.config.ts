@@ -38,6 +38,10 @@ export default defineConfig({
         test: {
           name: 'server',
           environment: 'node',
+          // PGlite starts a WebAssembly Postgres and applies every migration: seconds on a CI runner
+          // (the 5 s default timed out twice), more as migrations grow.
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
           include: ['src/**/*.{test,spec}.{js,ts}'],
           exclude: ['src/**/*.svelte.{test,spec}.{js,ts}'],
         },

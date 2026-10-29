@@ -9,10 +9,14 @@ export const sql = () => neon(process.env.DATABASE_URL!);
 
 // The real code is only emailed (or logged), so swap the stored hash for one of a known code.
 // Mirrors better-auth's email-otp storage: base64url(sha256(otp)) + ':' + attempts.
+// Better Auth keeps an unused earlier code as another row until it expires, and checks the newest
+// one: so does this. Expecting a single row failed whenever an earlier run left a code unused.
 export async function setCode(email: string, code: string) {
   const hash = createHash('sha256').update(code).digest('base64url');
   const rows = await sql()`update verification set value = ${`${hash}:0`}
-    where identifier = ${`sign-in-otp-${email}`} returning id`;
+    where id = (select id from verification where identifier = ${`sign-in-otp-${email}`}
+                order by "createdAt" desc limit 1)
+    returning id`;
   expect(rows).toHaveLength(1);
 }
 
