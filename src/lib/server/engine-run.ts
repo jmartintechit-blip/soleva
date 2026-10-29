@@ -543,9 +543,10 @@ export async function runUser(db: Db, userId: string, today: Day) {
            set value_cents = excluded.value_cents, flows_cents = excluded.flows_cents
          returning 1),
        al as (
-         insert into alert (user_id, kind, account_id, instrument_id, day, dedupe_key)
-         select $25, * from unnest($33::text[], $34::text[], $35::text[], $36::date[], $37::text[])
-         on conflict (user_id, dedupe_key) do update set day = excluded.day,
+         insert into alert (user_id, kind, account_id, instrument_id, day, dedupe_key, detail)
+         select $25, * from unnest($33::text[], $34::text[], $35::text[], $36::date[], $37::text[],
+           $44::jsonb[])
+         on conflict (user_id, dedupe_key) do update set day = excluded.day, detail = excluded.detail,
            state = case when alert.state = 'resuelta' then 'abierta' else alert.state end
          returning 1),
        -- Bridge until the projection reads the ledger (B13): v0 pages keep reading balance_cents.
@@ -603,6 +604,7 @@ export async function runUser(db: Db, userId: string, today: Day) {
         col(days, (x) => x[4]),
         Object.keys(today_.byAccount),
         Object.values(today_.byAccount),
+        col(found, (a) => JSON.stringify(a.detail)),
       ],
     );
     return { generated: fresh.length, repriced: repriced.length, alerts: found.length };

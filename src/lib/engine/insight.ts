@@ -217,6 +217,8 @@ export type Alert = {
   instrumentId?: string;
   ruleId?: string;
   key: string;
+  // The numbers the text shows, in cents or basis points.
+  detail: Record<string, number | string>;
 };
 
 // Information about the user's own plan, never advice: when cash runs out in the next 60 days, a
@@ -337,12 +339,26 @@ export function alerts(
         accountId: r.fromAccountId,
         ruleId: r.id,
         key: `plan_supera:${r.id}`,
+        detail: {
+          each: r.legs.reduce((s, l) => s + l.amountCents, 0),
+          frequency: r.frequency,
+          spend: Math.round(spend),
+          inflow: Math.round(inflow(r.fromAccountId!)),
+          ruleId: r.id,
+        },
       });
   }
 
   const forecast = forecastCash(input, h, ledger, today, prior, hand);
+  const cashToday = fold(ledger, today).cash;
   for (const [account, day] of Object.entries(forecast.firstNegative))
-    out.push({ kind: 'sin_saldo', day, accountId: account, key: `sin_saldo:${account}` });
+    out.push({
+      kind: 'sin_saldo',
+      day,
+      accountId: account,
+      key: `sin_saldo:${account}`,
+      detail: { cash: cashToday.get(account) ?? 0 },
+    });
 
   for (const [id, t] of Object.entries(input.interest))
     if (t.promoUntil && t.promoUntil >= today && daysBetween(today, t.promoUntil) <= 30)
@@ -351,14 +367,16 @@ export function alerts(
         day: t.promoUntil,
         accountId: id,
         key: `fin_promocion:${id}:${t.promoUntil}`,
+        detail: { afterRateBp: t.afterRateBp ?? 0 },
       });
 
-  const held = new Set(
-    [...fold(ledger, today).holdings]
-      .filter(([, v]) => v.qtyE8 > 0n)
-      .map(([k]) => k.split('|')[1]!),
-  );
-  for (const id of held) {
+  // Each held instrument and the first account holding it (where its price is entered).
+  const held = new Map<string, string>();
+  for (const [k, v] of fold(ledger, today).holdings) {
+    const [account, instrument] = k.split('|') as [string, string];
+    if (v.qtyE8 > 0n && !held.has(instrument)) held.set(instrument, account);
+  }
+  for (const [id, account] of held) {
     if (h.instruments[id]?.kind === 'estimado') continue;
     const quote = h.market.close(id, today);
     if (!quote || businessDaysBetween(quote.day, today) > 5)
@@ -366,7 +384,9 @@ export function alerts(
         kind: 'precio_viejo',
         day: quote?.day ?? today,
         instrumentId: id,
+        accountId: account,
         key: `precio_viejo:${id}`,
+        detail: {},
       });
   }
   return { alerts: out, forecast };
