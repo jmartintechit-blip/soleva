@@ -4,6 +4,17 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+### Añadido
+
+- Inicio: patrimonio de hoy con conteo, semáforo, estimación a 10 años y tus cuentas.
+- Proyección (móvil y escritorio): escenarios prudente, base y optimista, horizonte de 5, 10 o 20 años, gráfico con rango, «tú aportas / pone la rentabilidad» y tres «¿qué pasa si…?» que recalculan en vivo.
+- Supuestos editables por usuario y «Fijar como mi plan» para el semáforo («Vas en camino» / «Algo por debajo del plan», umbral −3 %).
+
+### Cambiado
+
+- En «Nueva regla», Día, Desde y Hasta van plegados en «Más opciones» (por defecto: hoy, este mes, sin fin).
+- El job «Free-plan usage» dice en rojo si es el AVISO de consumo o un fallo del script.
+
 ## [0.4.0] - 2026-10-29
 
 ### Añadido
