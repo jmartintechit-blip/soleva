@@ -42,16 +42,22 @@ export interface MoneyAccount extends Account {
 const columns = `id, name, kind, balance_cents::float8 as "balanceCents", is_estimated as "isEstimated",
   annual_rate_bp as "annualRateBp", archived_at is not null as archived`;
 
-// Every query filters by userId: someone else's id simply matches nothing.
+// Every query goes through account_access for userId ($1): someone else's id matches nothing.
+const can = (roles: string) =>
+  `id in (select account_id from account_access where user_id = $1 and role in (${roles}))`;
+const READ = can(`'propietario', 'editor', 'lector'`);
+const WRITE = can(`'propietario', 'editor'`);
+const OWN = can(`'propietario'`);
+
 export const listAccounts = (db: Db, userId: string) =>
   db.query<MoneyAccount & Record<string, unknown>>(
-    `select ${columns} from money_account where user_id = $1 order by archived, created_at, id`,
+    `select ${columns} from money_account where ${READ} order by archived, created_at, id`,
     [userId],
   );
 
 export async function getAccount(db: Db, userId: string, id: string) {
   const [row] = await db.query<MoneyAccount & Record<string, unknown>>(
-    `select ${columns} from money_account where user_id = $1 and id = $2`,
+    `select ${columns} from money_account where ${READ} and id = $2`,
     [userId, id],
   );
   return row ?? null;
@@ -71,7 +77,7 @@ export async function updateAccount(db: Db, userId: string, id: string, a: Accou
   const rows = await db.query(
     `update money_account set name = $3, kind = $4, balance_cents = $5, is_estimated = $6,
        annual_rate_bp = $7, updated_at = now()
-     where user_id = $1 and id = $2 returning id`,
+     where ${WRITE} and id = $2 returning id`,
     [userId, id, a.name, a.kind, a.balanceCents, a.isEstimated, a.annualRateBp],
   );
   return rows.length > 0;
@@ -81,7 +87,7 @@ export async function setArchived(db: Db, userId: string, id: string, archived: 
   const rows = await db.query(
     `update money_account set archived_at = case when $3 then coalesce(archived_at, now()) end,
        updated_at = now()
-     where user_id = $1 and id = $2 returning id`,
+     where ${WRITE} and id = $2 returning id`,
     [userId, id, archived],
   );
   return rows.length > 0;
@@ -91,10 +97,10 @@ export async function setArchived(db: Db, userId: string, id: string, archived: 
 // changes: the deferred foreign key of month_close_line refuses it and this returns 'closed'.
 export async function deleteAccount(db: Db, userId: string, id: string) {
   try {
-    const rows = await db.query(
-      `delete from money_account where user_id = $1 and id = $2 returning id`,
-      [userId, id],
-    );
+    const rows = await db.query(`delete from money_account where ${OWN} and id = $2 returning id`, [
+      userId,
+      id,
+    ]);
     return rows.length > 0;
   } catch (error) {
     if ((error as { code?: string }).code === '23503') return 'closed';

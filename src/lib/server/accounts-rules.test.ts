@@ -79,6 +79,26 @@ describe('accounts', () => {
     expect(await getAccount(db, 'ana', id)).toMatchObject({ name: 'Banco', archived: false });
   });
 
+  it('goes through account_access: the owner row comes alone, and roles limit what others do', async () => {
+    const id = await createAccount(db, 'ana', cash);
+    expect(
+      await db.query(`select user_id, role from account_access where account_id = $1`, [id]),
+    ).toEqual([{ user_id: 'ana', role: 'propietario' }]);
+    // A second owner is refused: the owner is the one whose deletion takes the account.
+    await expect(
+      db.query(`insert into account_access values ($1, 'eva', 'propietario')`, [id]),
+    ).rejects.toThrow();
+
+    await db.query(`insert into account_access values ($1, 'eva', 'lector')`, [id]);
+    expect(await getAccount(db, 'eva', id)).toMatchObject({ name: 'Banco' });
+    expect(await updateAccount(db, 'eva', id, fund)).toBe(false);
+    await db.query(`update account_access set role = 'editor' where user_id = 'eva'`);
+    expect(await updateAccount(db, 'eva', id, fund)).toBe(true);
+    expect(await deleteAccount(db, 'eva', id)).toBe(false);
+    expect(await deleteAccount(db, 'ana', id)).toBe(true);
+    expect(await db.query(`select 1 from account_access`)).toEqual([]);
+  });
+
   it('validates input with messages in Spanish', () => {
     expect(accountInput.safeParse(cash).success).toBe(true);
     const bad = accountInput.safeParse({ ...cash, name: ' ', balanceCents: -1 });
