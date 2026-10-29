@@ -183,3 +183,65 @@ describe('ledger', () => {
       expect(await db.query(`select 1 from ${t}`)).toEqual([]);
   });
 });
+
+describe('auto rules', () => {
+  const account = async (user: string, name: string) =>
+    (
+      await db.query<{ id: string }>(
+        `insert into money_account (user_id, name, kind, balance_cents) values ($1, $2, 'efectivo', 0)
+         returning id`,
+        [user, name],
+      )
+    )[0]!.id;
+  const rule = (values: string, params: unknown[]) =>
+    db.query<{ id: string }>(
+      `insert into auto_rule (user_id, name, kind, frequency, day, start_on, from_account_id,
+         to_account_id, amount_cents) values ${values} returning id`,
+      params,
+    );
+
+  it('fits each kind and frequency, and only with accounts its user can change', async () => {
+    const [saving, broker, other] = [
+      await account('ana', 'Remunerada'),
+      await account('ana', 'Bróker'),
+      await account('eva', 'De Eva'),
+    ];
+    await rule(
+      `('ana', 'Al bróker', 'transferencia', 'mensual', 1, '2026-11-01', $1, $2, 180000)`,
+      [saving, broker],
+    );
+    const [plan] = await rule(
+      `('ana', 'Plan', 'plan', 'semanal', 1, '2026-11-02', $1, null, null)`,
+      [broker],
+    );
+    const [{ id: etf }] = await db.query<{ id: string }>(
+      `insert into instrument (kind, name, currency, price_source, source_id)
+       values ('etf', 'World', 'USD', 'yahoo', 'IWDA.AS') returning id`,
+    );
+    await db.query(`insert into auto_rule_leg values ($1, 0, $2, 5000)`, [plan!.id, etf]);
+    await expect(
+      db.query(`insert into auto_rule_leg values ($1, 1, $2, 5000)`, [plan!.id, etf]),
+    ).rejects.toThrow();
+
+    for (const [values, params] of [
+      // Weekly on day 8, a plan with an amount, a transfer to itself, an income without account.
+      [`('ana', 'x', 'gasto', 'semanal', 8, '2026-11-01', $1, null, 100)`, [saving]],
+      [`('ana', 'x', 'plan', 'mensual', 1, '2026-11-01', $1, null, 100)`, [broker]],
+      [`('ana', 'x', 'transferencia', 'mensual', 1, '2026-11-01', $1, $1, 100)`, [saving]],
+      [`('ana', 'x', 'ingreso', 'quincenal', null, '2026-11-01', null, null, 100)`, []],
+      // Someone else's account, even with its real id.
+      [`('ana', 'x', 'gasto', 'mensual', 1, '2026-11-01', $1, null, 100)`, [other]],
+    ] as const)
+      await expect(rule(values, [...params])).rejects.toThrow();
+
+    // Its movements keep a rule from being deleted; deleting the user still takes everything.
+    await db.query(
+      `insert into movement (account_id, day, kind, amount_cents, source, rule_id, occurrence_key)
+       values ($1, '2026-11-03', 'gasto', -100, 'regla', $2, 'x')`,
+      [broker, plan!.id],
+    );
+    await expect(db.query(`delete from auto_rule where id = $1`, [plan!.id])).rejects.toThrow();
+    await db.query(`delete from "user" where id = 'ana'`);
+    expect(await db.query(`select 1 from auto_rule`)).toEqual([]);
+  });
+});
