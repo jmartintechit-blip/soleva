@@ -9,8 +9,13 @@
     "directory": ".svelte-kit/cloudflare",
   },
   "routes": [{ "pattern": "solevaapp.com", "custom_domain": true }],
-  // 07:00 UTC: 8–9 h in Spain. Close reminders (src/worker.ts).
+  // 07:00 UTC: 8–9 h in Spain. Close reminders, market data and the daily engine (src/worker.ts).
   "triggers": { "crons": ["0 7 * * *"] },
+  // One message per user: each engine run gets its own invocation (and its own CPU budget).
+  "queues": {
+    "producers": [{ "binding": "ENGINE", "queue": "soleva-engine" }],
+    "consumers": [{ "queue": "soleva-engine", "max_batch_size": 1, "max_retries": 3 }],
+  },
   "workers_dev": true,
   "preview_urls": true,
 }
