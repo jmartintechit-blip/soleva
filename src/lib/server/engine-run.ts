@@ -165,7 +165,7 @@ async function loadLedger(
 }
 
 // Everything the engine needs about one user, read once inside the run's transaction.
-export async function loadUser(tx: Db, userId: string, from?: Day) {
+export async function loadUser(tx: Db, userId: string, from?: Day, compact = true) {
   const accounts = await tx.query<{ id: string; kind: AccountKind }>(
     `select a.id, a.kind from money_account a join account_access x on x.account_id = a.id
      where x.user_id = $1 and x.role = 'propietario' order by a.created_at, a.id`,
@@ -266,7 +266,12 @@ export async function loadUser(tx: Db, userId: string, from?: Day) {
       payerAccountId: (r.payer_account_id as string) ?? undefined,
     };
 
-  const { ledger, provisional, standIns } = await loadLedger(tx, ids, interest, from);
+  const { ledger, provisional, standIns } = await loadLedger(
+    tx,
+    ids,
+    interest,
+    compact ? from : undefined,
+  );
 
   // Instruments in play: held, moved or bought by a plan.
   const used = new Set([
@@ -282,32 +287,42 @@ export async function loadUser(tx: Db, userId: string, from?: Day) {
     instruments[r.id] = { kind: r.kind, currency: r.currency };
 
   const prices = new Map<string, { day: Day; priceE8: bigint }[]>();
-  for (const r of await tx.query(
-    `select instrument_id, day::text as day, close_e8::text as close from (
-       select instrument_id, day, close_e8, 0 as own from price where instrument_id = any($1)
-       union all
-       select instrument_id, day, close_e8, 1 from price_override where user_id = $2 and instrument_id = any($1)
-     ) p order by instrument_id, day, own`,
-    [[...used], userId],
-  )) {
-    const list = prices.get(r.instrument_id as string) ?? [];
+  // Only the closes from `since` on, plus the last one before it of each instrument: years of daily
+  // prices were most of a run's CPU. shortcut: a buy still provisional before `since` is not
+  // repriced; widen `since` if that ever happens (a close more than 10 days late).
+  const since = from ? addDays(from, -10) : '0001-01-01';
+  const window = (table: string, own: number, user: string) => `
+    (select distinct on (instrument_id) instrument_id, day, close_e8, ${own} as own from ${table}
+     where instrument_id = any($1) ${user} and day < $3 order by instrument_id, day desc)
+    union all
+    (select instrument_id, day, close_e8, ${own} from ${table}
+     where instrument_id = any($1) ${user} and day >= $3)`;
+  const [{ j: priceJson }] = await tx.query<{ j: string }>(
+    `select coalesce(json_agg(json_build_array(instrument_id, day, close_e8::text) order by instrument_id, day, own), '[]')::text as j
+     from (${window('price', 0, '')} union all ${window('price_override', 1, 'and user_id = $2')}) p`,
+    [[...used], userId, since],
+  );
+  for (const [instrument, day, close] of JSON.parse(priceJson) as [string, string, string][]) {
+    const list = prices.get(instrument) ?? [];
     // The user's own price of a day replaces the provider's (it comes after it).
-    if (list.at(-1)?.day === r.day) list.pop();
-    list.push({ day: r.day as string, priceE8: BigInt(r.close as string) });
-    prices.set(r.instrument_id as string, list);
+    if (list.at(-1)?.day === day) list.pop();
+    list.push({ day, priceE8: BigInt(close) });
+    prices.set(instrument, list);
   }
   const currencies = [...new Set(Object.values(instruments).map((i) => i.currency))].filter(
     (c) => c !== 'EUR',
   );
   const rates = new Map<string, { day: Day; priceE8: bigint }[]>();
-  for (const r of await tx.query(
-    `select currency, day::text as day, per_eur_e8::text as v from fx_rate where currency = any($1) order by currency, day`,
-    [currencies],
-  ))
-    rates.set(r.currency as string, [
-      ...(rates.get(r.currency as string) ?? []),
-      { day: r.day as string, priceE8: BigInt(r.v as string) },
-    ]);
+  const [{ j: fxJson }] = await tx.query<{ j: string }>(
+    `select coalesce(json_agg(json_build_array(currency, day, per_eur_e8::text) order by currency, day), '[]')::text as j
+     from ((select distinct on (currency) currency, day, per_eur_e8 from fx_rate
+            where currency = any($1) and day < $2 order by currency, day desc)
+           union all
+           (select currency, day, per_eur_e8 from fx_rate where currency = any($1) and day >= $2)) r`,
+    [currencies, since],
+  );
+  for (const [currency, day, v] of JSON.parse(fxJson) as [string, string, string][])
+    rates.set(currency, [...(rates.get(currency) ?? []), { day, priceE8: BigInt(v) }]);
 
   const market: Market = {
     currency: (id) => instruments[id]?.currency ?? 'EUR',
@@ -399,7 +414,8 @@ export async function runUser(db: Db, userId: string, today: Day) {
     const { ledger, provisional, standIns, input, holdings } = await loadUser(
       tx,
       userId,
-      compact ? from : undefined,
+      from,
+      compact,
     );
 
     const fresh = advance(input, ledger, from, today);
