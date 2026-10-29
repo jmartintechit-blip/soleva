@@ -470,7 +470,7 @@ export async function runUser(db: Db, userId: string, today: Day) {
 
     // History: each day the run went through (today too, as prices move), and each account at the
     // end of every month it crossed.
-    const days: [Day, number, number, string][] = [];
+    const days: [Day, number, number, string, string][] = [];
     const months: [string, string, number, number][] = [];
     for (const d of new Set([...daysAfter(from, today), today])) {
       const v = valuation(holdings, all, d);
@@ -479,7 +479,7 @@ export async function runUser(db: Db, userId: string, today: Day) {
       const perAccount = Object.fromEntries(
         Object.entries(v.byAccount).map(([a, value]) => [a, [value, own[a] ?? 0]]),
       );
-      days.push([d, v.total, flows, JSON.stringify(perAccount)]);
+      days.push([d, v.total, flows, JSON.stringify(perAccount), JSON.stringify(v.byClass)]);
       if (monthOf(addDays(d, 1)) !== monthOf(d))
         for (const [account, value] of Object.entries(v.byAccount)) {
           const own = all.filter((m) => m.accountId === account);
@@ -492,6 +492,7 @@ export async function runUser(db: Db, userId: string, today: Day) {
           ]);
         }
     }
+    const today_ = valuation(holdings, all, today);
     const { alerts: found, forecast } = alerts(
       input,
       holdings,
@@ -530,10 +531,10 @@ export async function runUser(db: Db, userId: string, today: Day) {
            where k.a = p.account_id and k.i = p.instrument_id)
          returning 1),
        ud as (
-         insert into user_day (user_id, day, total_cents, flows_cents, accounts)
-         select $25, * from unnest($26::date[], $27::bigint[], $28::bigint[], $40::jsonb[])
+         insert into user_day (user_id, day, total_cents, flows_cents, accounts, classes)
+         select $25, * from unnest($26::date[], $27::bigint[], $28::bigint[], $40::jsonb[], $41::jsonb[])
          on conflict (user_id, day) do update set total_cents = excluded.total_cents,
-           flows_cents = excluded.flows_cents, accounts = excluded.accounts
+           flows_cents = excluded.flows_cents, accounts = excluded.accounts, classes = excluded.classes
          returning 1),
        am as (
          insert into account_month (account_id, month, value_cents, flows_cents)
@@ -546,6 +547,11 @@ export async function runUser(db: Db, userId: string, today: Day) {
          select $25, * from unnest($33::text[], $34::text[], $35::text[], $36::date[], $37::text[])
          on conflict (user_id, dedupe_key) do update set day = excluded.day,
            state = case when alert.state = 'resuelta' then 'abierta' else alert.state end
+         returning 1),
+       -- Bridge until the projection reads the ledger (B13): v0 pages keep reading balance_cents.
+       bal as (
+         update money_account m set balance_cents = least(99999999999, greatest(0, abs(b.v)))
+         from unnest($42::text[], $43::bigint[]) as b(id, v) where m.id = b.id
          returning 1),
        res as (
          update alert set state = 'resuelta'
@@ -594,6 +600,9 @@ export async function runUser(db: Db, userId: string, today: Day) {
         today,
         JSON.stringify(forecast),
         col(days, (x) => x[3]),
+        col(days, (x) => x[4]),
+        Object.keys(today_.byAccount),
+        Object.values(today_.byAccount),
       ],
     );
     return { generated: fresh.length, repriced: repriced.length, alerts: found.length };

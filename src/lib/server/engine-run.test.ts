@@ -112,6 +112,22 @@ describe('runUser', () => {
     // 1 transfer (2 legs), 5 Mondays and November's interest on the savings account.
     expect(await count(`from movement where source in ('regla', 'motor')`)).toBe(2 + 5 + 1);
     expect(await count(`from user_day where user_id = 'ana'`)).toBe(30);
+    // v0 pages still read balance_cents: it follows the ledger.
+    expect(
+      await db.query(`select balance_cents::float8 as b from money_account where id = $1`, [
+        acc.brk,
+      ]),
+    ).toEqual([{ b: expect.any(Number) }]);
+    expect(
+      Number(
+        (
+          await db.query<{ b: number }>(
+            `select balance_cents::float8 as b from money_account where id = $1`,
+            [acc.rem],
+          )
+        )[0]!.b,
+      ),
+    ).toBeGreaterThan(800_000);
     // Each account's value and own flows per day: the transfer of 1 November is a flow of both.
     expect(
       await db.query(
