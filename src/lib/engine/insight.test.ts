@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import { advance } from './advance.ts';
 import { market } from './testing.ts';
-import { type Holdings, alerts, moneyWeighted, outsideFlows, valuation } from './insight.ts';
+import {
+  type Holdings,
+  alerts,
+  fingerprint,
+  forecastCash,
+  moneyWeighted,
+  outsideFlows,
+  valuation,
+} from './insight.ts';
 import type { Movement } from './ledger.ts';
 import { toE8 } from './units.ts';
 
@@ -193,7 +202,12 @@ describe('valuation and alerts', () => {
       ...h,
       accounts: [...h.accounts, { id: 'rem', kind: 'remunerada' as const }],
     };
-    const found = alerts(input, { ...withSaving, market: input.market }, ledger, '2027-01-04');
+    const found = alerts(
+      input,
+      { ...withSaving, market: input.market },
+      ledger,
+      '2027-01-04',
+    ).alerts;
     // 250 € a week × 52/12 = 1.083,33 € a month, above the 1.000 € that come in.
     expect(found.map((a) => a.key).sort()).toEqual(
       [
@@ -203,5 +217,63 @@ describe('valuation and alerts', () => {
         'sin_saldo:rem',
       ].sort(),
     );
+  });
+});
+
+describe('incremental cash forecast', () => {
+  const input = {
+    rules: [
+      {
+        id: 'fee',
+        kind: 'gasto' as const,
+        frequency: 'mensual' as const,
+        day: 30,
+        startOn: '2026-01-01',
+        fromAccountId: 'aut',
+        amountCents: 30_000,
+        legs: [],
+        active: true,
+      },
+    ],
+    interest: {},
+    dividends: [],
+    debts: {},
+    market: market({}),
+  };
+  const h: Holdings = {
+    accounts: [{ id: 'aut', kind: 'efectivo' }],
+    instruments: {},
+    estimates: {},
+    vehicles: {},
+    assets: {},
+    market: market({}),
+  };
+  const opening = mv({
+    accountId: 'aut',
+    day: '2026-10-31',
+    kind: 'apertura',
+    amountCents: 100_000,
+  });
+
+  it('only simulates the new days while nothing changed, and gives what a full run gives', () => {
+    const first = forecastCash(input, h, [opening], '2026-11-01');
+    expect(first.through).toBe('2026-12-31');
+    expect(first.firstNegative).toEqual({});
+    // A day later, with the ledger as the engine left it: one new day simulated from the stored cash.
+    const ledger = [opening, ...advance(input, [opening], '2026-11-01', '2026-12-31')];
+    const next = forecastCash(input, h, ledger, '2026-12-31', first);
+    const full = forecastCash(input, h, ledger, '2026-12-31');
+    expect(next).toEqual(full);
+    // 1.000 € minus 300 € on the 30th: 700, 400, 100 and −200 € on 28 February.
+    expect(next.firstNegative).toEqual({ aut: '2027-02-28' });
+  });
+
+  it('starts again from the real balances when something was changed by hand', () => {
+    const first = forecastCash(input, h, [opening], '2026-12-31');
+    const gift = mv({ accountId: 'aut', day: '2026-12-31', kind: 'ingreso', amountCents: 50_000 });
+    const after = forecastCash(input, h, [opening, gift], '2026-12-31', first);
+    expect(after.fingerprint).not.toBe(first.fingerprint);
+    expect(after.firstNegative).toEqual({});
+    expect(fingerprint(input, [opening])).toBe(first.fingerprint);
   });
 });

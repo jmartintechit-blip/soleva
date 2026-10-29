@@ -196,12 +196,98 @@ export type Alert = {
 // Information about the user's own plan, never advice: when cash runs out in the next 60 days, a
 // plan that spends more a month than comes into its account, a promotion ending within 30 days,
 // a held price older than 5 business days.
+// The cash forecast behind 'sin_saldo', kept between runs: simulated up to `through` from the
+// balances it had there. While its fingerprint holds (same rules and settings, nothing changed by
+// hand), each run only simulates the new days of the 60-day horizon.
+export interface Forecast {
+  fingerprint: string;
+  through: Day;
+  cash: Record<string, number>;
+  firstNegative: Record<string, Day>;
+}
+
+// What the forecast depends on besides the calendar: the rules and settings, and every movement
+// the engine did not make itself (by hand, a reconciliation, an opening, a void).
+export function fingerprint(input: EngineInput, ledger: readonly Movement[]): string {
+  const own = ledger
+    .filter((m) => m.voided || !['regla', 'motor'].includes(m.source))
+    .map((m) => `${m.accountId}${m.day}${m.amountCents}${m.voided ? 'v' : ''}`);
+  const text = JSON.stringify(
+    [input.rules, input.interest, input.debts, input.dividends, own],
+    (_, v) => (typeof v === 'bigint' ? v.toString() : v),
+  );
+  // FNV-1a, twice with different seeds: a short, stable id for a long text.
+  const fnv = (seed: number) => {
+    let x = seed;
+    for (let i = 0; i < text.length; i++) x = Math.imul(x ^ text.charCodeAt(i), 16777619) >>> 0;
+    return x.toString(36);
+  };
+  return `${fnv(2166136261)}${fnv(374761393)}`;
+}
+
+// Simulates cash from balances at `from` to `to` (from one opening per account, never the whole
+// ledger, so its cost does not grow with history). Interest accrued before `from` and dividends
+// are left out: the forecast errs on the side of less cash.
+function simulate(input: EngineInput, cash: Record<string, number>, from: Day, to: Day) {
+  const openings: Movement[] = Object.entries(cash).map(([accountId, amountCents]) => ({
+    accountId,
+    day: from,
+    seq: 0,
+    kind: 'apertura',
+    amountCents,
+    source: 'motor',
+  }));
+  const moves = advance({ ...input, dividends: [] }, openings, from, to).sort((x, y) =>
+    x.day < y.day ? -1 : x.day > y.day ? 1 : x.seq - y.seq,
+  );
+  const balance = { ...cash };
+  const firstNegative: Record<string, Day> = {};
+  for (const m of moves) {
+    if (!(m.accountId in balance)) continue;
+    balance[m.accountId]! += m.amountCents;
+    if (balance[m.accountId]! < 0 && !firstNegative[m.accountId])
+      firstNegative[m.accountId] = m.day;
+  }
+  return { cash: balance, firstNegative };
+}
+
+export function forecastCash(
+  input: EngineInput,
+  h: Holdings,
+  ledger: readonly Movement[],
+  today: Day,
+  prior?: Forecast,
+): Forecast {
+  const print = fingerprint(input, ledger);
+  const horizon = addDays(today, 60);
+  if (prior?.fingerprint === print && prior.through >= today) {
+    const kept = Object.fromEntries(
+      Object.entries(prior.firstNegative).filter(([, d]) => d > today),
+    );
+    if (prior.through >= horizon) return { ...prior, firstNegative: kept };
+    const next = simulate(input, prior.cash, prior.through, horizon);
+    return {
+      fingerprint: print,
+      through: horizon,
+      cash: next.cash,
+      firstNegative: { ...next.firstNegative, ...kept },
+    };
+  }
+  const book = fold(ledger, today).cash;
+  const cash = Object.fromEntries(
+    h.accounts.filter((a) => CASH.includes(a.kind)).map((a) => [a.id, book.get(a.id) ?? 0]),
+  );
+  const fresh = simulate(input, cash, today, horizon);
+  return { fingerprint: print, through: horizon, ...fresh };
+}
+
 export function alerts(
   input: EngineInput,
   h: Holdings,
   ledger: readonly Movement[],
   today: Day,
-): Alert[] {
+  prior?: Forecast,
+): { alerts: Alert[]; forecast: Forecast } {
   const out: Alert[] = [];
   const live = input.rules.filter((r) => r.active);
   const inflow = (account: string) =>
@@ -222,20 +308,9 @@ export function alerts(
       });
   }
 
-  const future = [...ledger, ...advance(input, ledger, today, addDays(today, 60))];
-  for (const a of h.accounts.filter((a) => CASH.includes(a.kind))) {
-    const own = future
-      .filter((m) => m.accountId === a.id && !m.voided)
-      .sort((x, y) => (x.day < y.day ? -1 : x.day > y.day ? 1 : x.seq - y.seq));
-    let balance = 0;
-    for (const m of own) {
-      balance += m.amountCents;
-      if (m.day > today && balance < 0) {
-        out.push({ kind: 'sin_saldo', day: m.day, accountId: a.id, key: `sin_saldo:${a.id}` });
-        break;
-      }
-    }
-  }
+  const forecast = forecastCash(input, h, ledger, today, prior);
+  for (const [account, day] of Object.entries(forecast.firstNegative))
+    out.push({ kind: 'sin_saldo', day, accountId: account, key: `sin_saldo:${account}` });
 
   for (const [id, t] of Object.entries(input.interest))
     if (t.promoUntil && t.promoUntil >= today && daysBetween(today, t.promoUntil) <= 30)
@@ -262,7 +337,7 @@ export function alerts(
         key: `precio_viejo:${id}`,
       });
   }
-  return out;
+  return { alerts: out, forecast };
 }
 
 function businessDaysBetween(from: Day, to: Day) {

@@ -17,6 +17,7 @@ const END = '2027-04-30';
 
 const prices = market({
   world: { currency: 'USD', price: '108.50' },
+  // LU1681045370, Amundi MSCI Emerging Markets Swap EUR Acc (AEEM.PA): in euros, no ECB rate.
   em: { currency: 'EUR', price: '41.20' },
   ai: { currency: 'USD', price: '9.80' },
   gold: { currency: 'USD', price: '43.40' },
@@ -269,13 +270,14 @@ describe('reference case', () => {
   it('warns when the weekly plan (×52/12) spends more than the monthly transfer brings', () => {
     // 250 € a week are 1.083,33 € a month: covered by 1.200 €, not by 1.000 €.
     const keys = (i: EngineInput) =>
-      alerts(i, holdings, [...before, ...opening], START).map((a) => a.key);
+      alerts(i, holdings, [...before, ...opening], START).alerts.map((a) => a.key);
     expect(keys(input(120_000))).not.toContain('plan_supera:plan');
     expect(keys(input(100_000))).toContain('plan_supera:plan');
     // The small account pays 300 € on the 30th from 1.000 €: 700, 400, 100 and, on 28 February
     // (the 30th of a short month), −200 €. It says when.
     expect(
-      alerts(input(), holdings, ledger, '2027-01-31').find((a) => a.key === 'sin_saldo:aut')?.day,
+      alerts(input(), holdings, ledger, '2027-01-31').alerts.find((a) => a.key === 'sin_saldo:aut')
+        ?.day,
     ).toBe('2027-02-28');
   });
 

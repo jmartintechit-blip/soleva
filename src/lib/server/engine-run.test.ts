@@ -112,5 +112,11 @@ describe('runUser', () => {
     expect(await count(`from movement where source in ('regla', 'motor')`)).toBe(2 + 5 + 1);
     expect(await count(`from user_day where user_id = 'ana'`)).toBe(30);
     expect(await count(`from account_month where month = '2026-11-01'`)).toBe(2);
+    // The cash forecast is kept for the next run, 60 days ahead.
+    expect(
+      await db.query(
+        `select forecast->>'through' as through from engine_state where user_id = 'ana'`,
+      ),
+    ).toEqual([{ through: '2027-01-29' }]);
   });
 });

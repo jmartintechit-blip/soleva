@@ -4,6 +4,7 @@ import type { DebtTerms } from '#lib/engine/debt.ts';
 import {
   type AccountKind,
   type Holdings,
+  type Forecast,
   type InstrumentKind,
   alerts,
   outsideFlows,
@@ -254,8 +255,8 @@ function latest(list: { day: Day; priceE8: bigint }[] | undefined, day: Day) {
 export async function runUser(db: Db, userId: string, today: Day) {
   return db.transaction(async (tx) => {
     await tx.query(`select pg_advisory_xact_lock(hashtext($1))`, [userId]);
-    const [state] = await tx.query<{ through: string }>(
-      `select processed_through::text as through from engine_state where user_id = $1`,
+    const [state] = await tx.query<{ through: string; forecast: Forecast | null }>(
+      `select processed_through::text as through, forecast from engine_state where user_id = $1`,
       [userId],
     );
     if (!state) return null;
@@ -339,7 +340,13 @@ export async function runUser(db: Db, userId: string, today: Day) {
         }
     }
 
-    const found = alerts(input, holdings, all, today);
+    const { alerts: found, forecast } = alerts(
+      input,
+      holdings,
+      all,
+      today,
+      state.forecast ?? undefined,
+    );
     for (const a of found)
       await tx.query(
         `insert into alert (user_id, kind, account_id, instrument_id, day, dedupe_key) values ($1, $2, $3, $4, $5, $6)
@@ -352,8 +359,8 @@ export async function runUser(db: Db, userId: string, today: Day) {
       [userId, found.map((a) => a.key)],
     );
     await tx.query(
-      `update engine_state set processed_through = $2, updated_at = now() where user_id = $1`,
-      [userId, today],
+      `update engine_state set processed_through = $2, forecast = $3, updated_at = now() where user_id = $1`,
+      [userId, today, JSON.stringify(forecast)],
     );
     return { generated: fresh.length, repriced, alerts: found.length };
   });
