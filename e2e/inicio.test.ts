@@ -41,4 +41,14 @@ test('Inicio on the ledger: value, what you put in and made, accounts and the ma
     `/cuentas/${bank!.id}`,
   );
   await expect(page.getByText('Estimación, no asesoramiento')).toBeVisible();
+
+  // The account's own page: its value, and the opening among its movements.
+  await page.getByRole('link', { name: /^Banco/ }).click();
+  await expect(page.getByRole('heading', { name: 'Banco' })).toBeVisible();
+  await expect(page.getByText('10.000,50 €').first()).toBeVisible();
+  await expect(page.getByText('Saldo inicial')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Cuadrar' })).toHaveAttribute(
+    'href',
+    `/cuentas/${bank!.id}/cuadre`,
+  );
 });

@@ -9,6 +9,8 @@ import {
   setArchived,
   updateAccount,
 } from '#lib/server/accounts.ts';
+import { loadAccountView } from '#lib/server/account-view.ts';
+import { today } from '#lib/server/plan.ts';
 import { fieldErrors, requireUserId } from '#lib/server/session.ts';
 import { FOLLOWS_SCENARIO } from '#lib/labels.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -17,10 +19,18 @@ const NEW = 'nueva';
 
 export const load: PageServerLoad = async (event) => {
   const userId = await requireUserId(event);
-  if (event.params.id === NEW) return { account: null };
-  const account = await getAccount(event.locals.db(), userId, event.params.id);
+  if (event.params.id === NEW) return { view: null, account: null };
+  const db = event.locals.db();
+  // On the ledger: the account's page (b11/NCuenta); before the cut-over, its v0 form.
+  const [ledger] = await db.query(`select 1 from engine_state where user_id = $1`, [userId]);
+  if (ledger) {
+    const view = await loadAccountView(db, userId, event.params.id, today());
+    if (!view) error(404, 'No encontrada');
+    return { view, account: null };
+  }
+  const account = await getAccount(db, userId, event.params.id);
   if (!account) error(404, 'No encontrada');
-  return { account };
+  return { view: null, account };
 };
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? '').trim();
