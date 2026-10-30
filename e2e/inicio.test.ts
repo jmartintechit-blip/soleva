@@ -1,0 +1,44 @@
+import { expect, test } from '@playwright/test';
+import { createNeonDb } from '../src/lib/server/db/index.ts';
+import { runUser } from '../src/lib/server/engine-run.ts';
+import { migrateUserToLedger } from '../src/lib/server/ledger-migration.ts';
+import { today } from '../src/lib/server/plan.ts';
+import { EMAIL, hydrated, resetUser, signIn, sql } from './auth.ts';
+
+test('Inicio on the ledger: value, what you put in and made, accounts and the main alert', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await resetUser();
+  await signIn(page);
+  const db = sql();
+  const [{ id }] = await db`select id from "user" where email = ${EMAIL}`;
+  const [bank] = await db`insert into money_account (user_id, name, kind, balance_cents)
+    values (${id}, 'Banco', 'efectivo', 1000050) returning id`;
+  // The cut-over the app will do on entry (B12), done here by hand.
+  const ledger = createNeonDb(process.env.DATABASE_URL!);
+  try {
+    await migrateUserToLedger(ledger, id, today());
+    await runUser(ledger, id, today());
+  } finally {
+    await ledger.close();
+  }
+  await db`insert into alert (user_id, kind, account_id, day, dedupe_key, detail)
+    values (${id}, 'sin_saldo', ${bank!.id}, ${today()}, 'sin_saldo:x', ${{ cash: 100 }})`;
+
+  await page.goto('/inicio');
+  await hydrated(page);
+  await expect(page.getByText('Tu patrimonio')).toBeVisible();
+  await expect(page.getByText('10.000,50 €').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Todo' }).click();
+  await expect(page.getByRole('button', { name: 'Todo' })).toHaveAttribute('aria-pressed', 'true');
+  // Opening the account is money you put in, not money it made.
+  await expect(page.getByText('Lo que aportaste').locator('..')).toContainText('+10.000,50 €');
+  await expect(page.getByText('Lo que ganó tu dinero').locator('..')).toContainText('0 €');
+  await expect(page.getByText('Esta cuenta se queda sin saldo')).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Banco/ })).toHaveAttribute(
+    'href',
+    `/cuentas/${bank!.id}`,
+  );
+  await expect(page.getByText('Estimación, no asesoramiento')).toBeVisible();
+});

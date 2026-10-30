@@ -1,55 +1,79 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { page } from '$app/state';
+  import { describe } from '#lib/alerts.ts';
   import Logo from '#lib/components/Logo.svelte';
   import { Count } from '#lib/count.svelte.ts';
   import { formatEuros } from '#lib/engine/money.ts';
-  import { plannedAt, project, status } from '#lib/engine/project.ts';
-  import { netWorth } from '#lib/engine/rules.ts';
-  import { KIND_LABEL } from '#lib/labels.ts';
+  import { CLASS_LABEL, KIND_LABEL, PERIODS, type PeriodKey } from '#lib/labels.ts';
+  import Legacy from './Legacy.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
 
-  const live = $derived(data.accounts.filter((a) => !a.archived));
-  const now = $derived(netWorth(live));
-  const in10 = $derived(
-    project(
-      live,
-      data.rules,
-      data.month,
-      { annualBp: data.assumptions.base, inflationBp: data.assumptions.inflation },
-      120,
-    ).at(-1)?.realCents ?? now,
+  // b11/NInicio and NInicioEscritorio. The periods come computed; switching is instant.
+  let key = $state<PeriodKey>('mes');
+  const LONG: Record<PeriodKey, string> = {
+    dia: 'hoy',
+    mes: 'este mes',
+    m3: 'en 3 meses',
+    m6: 'en 6 meses',
+    ano: 'en un año',
+    todo: 'desde el principio',
+  };
+  const eur = (cents: number, sign = false) =>
+    `${sign && cents > 0 ? '+' : ''}${formatEuros(cents, { withCents: true })}`;
+  const pct = (rate: number | null) =>
+    rate === null
+      ? ''
+      : `${rate > 0 ? '+' : rate < 0 ? '−' : ''}${Math.abs(rate * 100).toLocaleString('es-ES', { maximumFractionDigits: Math.abs(rate) < 0.01 ? 2 : 1 })} %`;
+  const short = (day: string) =>
+    new Date(`${day}T12:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+
+  const p = $derived(data.ledger ? data.periods[key]! : null);
+  const accounts = $derived(
+    data.ledger ? data.accounts.map((a) => ({ ...a, made: p?.accounts[a.id] ?? 0 })) : [],
   );
-  const light = $derived.by(() => {
-    const planned = data.baseline && plannedAt(data.baseline, data.month);
-    return planned == null ? null : status(now, planned);
+  const top = $derived(data.ledger ? data.alerts[0] : undefined);
+  const initial = $derived((page.data.email as string)?.[0]?.toUpperCase() ?? '·');
+
+  // The breakdown in the accent's shades, largest first (debts are not an asset).
+  const SHADES = [1, 0.7, 0.45, 0.3, 0.2, 0.12];
+  const split = $derived.by(() => {
+    if (!data.ledger) return [];
+    const parts = Object.entries(data.classes)
+      .filter(([k, v]) => k !== 'deudas' && v > 0)
+      .sort((a, b) => b[1] - a[1]);
+    const total = parts.reduce((s, [, v]) => s + v, 0) || 1;
+    return parts.map(([k, v], i) => ({
+      label: CLASS_LABEL[k] ?? k,
+      value: v,
+      share: v / total,
+      shade: SHADES[Math.min(i, SHADES.length - 1)]!,
+    }));
   });
 
-  // Evolution: the closed months plus today, drawn at the real width (see /proyeccion).
-  const series = $derived([...data.history.map((h) => h.netCents), now]);
+  // The line of the period, at the chart's real width.
   let width = $state(346);
-  const H = 86;
-  const spark = $derived.by(() => {
-    const min = Math.min(...series);
-    const span = Math.max(...series) - min || 1;
-    const x = (k: number) => 4 + (k * (width - 14)) / (series.length - 1);
-    const y = (v: number) => H - 6 - ((v - min) / span) * (H - 16);
-    const line = series.map((v, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)} ${y(v).toFixed(1)}`);
+  const H = 120;
+  const chart = $derived.by(() => {
+    const series = p?.series.length ? p.series : [0];
+    const pts = series.length > 1 ? series : [series[0]!, series[0]!];
+    const min = Math.min(...pts);
+    const span = Math.max(...pts) - min || 1;
+    const x = (k: number) => 4 + (k * (width - 14)) / (pts.length - 1);
+    const y = (v: number) => H - 8 - ((v - min) / span) * (H - 22);
+    const line = pts.map((v, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)} ${y(v).toFixed(1)}`);
     return {
       line: line.join(' '),
-      area: `${line.join(' ')} L${x(series.length - 1).toFixed(1)} ${H} L${x(0).toFixed(1)} ${H} Z`,
-      end: { x: x(series.length - 1), y: y(now) },
+      area: `${line.join(' ')} L${x(pts.length - 1).toFixed(1)} ${H} L${x(0).toFixed(1)} ${H} Z`,
+      end: { x: x(pts.length - 1), y: y(pts.at(-1)!) },
     };
   });
-  const monthName = (m: string, opts: Intl.DateTimeFormatOptions = { month: 'long' }) =>
-    new Date(`${m}-15`).toLocaleDateString('es-ES', opts);
-  const last = $derived(data.history.at(-1));
-  const change = $derived(last ? now - last.netCents : 0);
 
   const shown = new Count();
   onMount(() => {
-    shown.to(now, 1500);
+    if (data.ledger) shown.to(data.periods.mes!.value, 1500);
     return () => shown.stop();
   });
 </script>
@@ -58,191 +82,224 @@
   <title>Inicio · Soleva</title>
 </svelte:head>
 
-<header class="top">
-  <span class="logo"><Logo /></span>
-  <a class="plus" href="/reglas/nueva" aria-label="Crear regla">
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.8"
-      stroke-linecap="round"
-      aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg
-    >
-  </a>
-</header>
-
-{#if !live.length}
-  <section class="f1 welcome">
-    <h1 class="title-lg">Empecemos por tus cuentas</h1>
-    <p class="body sv-muted">
-      Apunta dónde tienes tu dinero: el banco, tu bróker, quizá un coche o una deuda. Solo nombre y
-      saldo; nada se conecta a tu banco.
-    </p>
-    <a class="sv-btn sv-btn--accent" href="/cuentas/nueva">Crear mi primera cuenta</a>
-  </section>
-{:else}
-  <div class="cols">
-    <div class="main">
-      <section class="sv-hero f1">
-        <span class="sv-hero__label">Tu patrimonio hoy</span>
-        <span class="sv-hero__value" aria-live="polite"
-          >{formatEuros(shown.value, { withCents: true })}</span
+{#if !data.ledger}
+  <Legacy {data} />
+{:else if p}
+  <div class="home">
+    <header class="top">
+      <span class="logo"><Logo /></span>
+      <h1 class="desk-title">Inicio</h1>
+      <span class="icons">
+        <a
+          class="round"
+          href="/alertas"
+          aria-label={data.alerts.length ? `Alertas, ${data.alerts.length} sin ver` : 'Alertas'}
         >
-        <span class="sv-hero__meta">
-          {#if last}
-            <span class="up"
-              >{change >= 0 ? '+' : ''}{formatEuros(change, { withCents: true })}</span
-            >
-            desde el cierre de
-            {monthName(last.month)}
-          {:else}
-            Lo que tienes menos lo que debes.
-          {/if}
-        </span>
-      </section>
-
-      {#if data.history.length}
-        {@const first = data.history[0]!.month}
-        <section class="f2 spark" bind:clientWidth={width}>
           <svg
-            viewBox="0 0 {width} {H}"
-            {width}
-            height={H}
-            role="img"
-            aria-label="Evolución de tu patrimonio desde {monthName(first, {
-              month: 'long',
-              year: 'numeric',
-            })}: de {formatEuros(series[0]!, { withCents: true })} a {formatEuros(now, {
-              withCents: true,
-            })}."
-          >
-            <defs>
-              <linearGradient id="spk" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="var(--accent)" stop-opacity=".22" />
-                <stop offset="1" stop-color="var(--accent)" stop-opacity="0" />
-              </linearGradient>
-            </defs>
-            <path d={spark.area} fill="url(#spk)" />
-            <path
-              class="sv-draw"
-              pathLength="1"
-              d={spark.line}
-              fill="none"
-              stroke="var(--accent)"
-              stroke-width="2.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <circle class="sv-halo" cx={spark.end.x} cy={spark.end.y} r="10" fill="var(--accent)" />
-            <circle cx={spark.end.x} cy={spark.end.y} r="4" fill="var(--accent)" />
-          </svg>
-          <div class="axis">
-            <span>{monthName(first, { month: 'short', year: 'numeric' })}</span><span>Hoy</span>
-          </div>
-        </section>
-      {/if}
-
-      <a class="f2 ahead" href="/proyeccion">
-        {#if light}
-          <span class="sv-pill" class:sv-pill--ok={light.level === 'en_camino'}>
-            <span class="sv-pill__dot"></span>
-            {light.level === 'en_camino' ? 'Vas en camino' : 'Algo por debajo del plan'}
-          </span>
-        {/if}
-        <span class="sv-muted">En 10 años: ~{formatEuros(in10)}</span>
-      </a>
-
-      {#if data.toClose}
-        <a class="f3 close" href="/cierre">
-          <span class="close__icon" aria-hidden="true">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><rect x="4" y="5" width="16" height="15" rx="2" /><path
-                d="M8 3v4M16 3v4M8 13l3 3 5-6"
-              /></svg
-            >
-          </span>
-          <span class="sv-row__main">
-            <span class="sv-row__title">Cierra {monthName(data.toClose)}</span>
-            <span class="sv-row__meta"
-              >{live.length === 1 ? '1 saldo propuesto' : `${live.length} saldos propuestos`} · menos
-              de 1 minuto</span
-            >
-          </span>
-          <svg
-            width="18"
-            height="18"
+            width="19"
+            height="19"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="1.8"
+            stroke-width="1.6"
             stroke-linecap="round"
-            aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg
+            stroke-linejoin="round"
+            aria-hidden="true"
+            ><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20a2 2 0 0 0 4 0" /></svg
           >
+          {#if data.alerts.length}<span class="bell-dot" aria-hidden="true"></span>{/if}
         </a>
-      {/if}
+        <a class="round avatar" href="/ajustes" aria-label="Ajustes">{initial}</a>
+      </span>
+    </header>
 
-      {#if !data.rules.length}
-        <a class="f3 sv-row card" href="/reglas/nueva">
+    <div class="chips f2" role="group" aria-label="Periodo">
+      {#each PERIODS as o (o.key)}
+        <button
+          type="button"
+          class="chip"
+          aria-pressed={key === o.key}
+          onclick={() => (key = o.key)}>{o.label}</button
+        >
+      {/each}
+    </div>
+
+    <section class="hero f1">
+      <span class="sv-muted kicker">Tu patrimonio</span>
+      <span class="value" aria-live="polite"
+        >{formatEuros(Math.round(shown.value) === p.value ? p.value : shown.value, {
+          withCents: true,
+        })}</span
+      >
+      <span class="sv-muted meta"
+        ><span class:up={p.change > 0} class:down={p.change < 0}>{eur(p.change, true)}</span>
+        {LONG[key]}</span
+      >
+    </section>
+
+    <section class="chart f2" bind:clientWidth={width}>
+      <svg
+        viewBox="0 0 {width} {H}"
+        {width}
+        height={H}
+        role="img"
+        aria-label="Evolución de tu patrimonio {LONG[key]}: de {eur(p.series[0] ?? 0)} a {eur(
+          p.value,
+        )}."
+      >
+        <defs>
+          <linearGradient id="home-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="var(--accent)" stop-opacity=".22" />
+            <stop offset="1" stop-color="var(--accent)" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={chart.area} fill="url(#home-area)" />
+        {#key key}
+          <path
+            class="sv-draw"
+            pathLength="1"
+            d={chart.line}
+            fill="none"
+            stroke="var(--accent)"
+            stroke-width="2.25"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        {/key}
+        <circle class="sv-halo" cx={chart.end.x} cy={chart.end.y} r="10" fill="var(--accent)" />
+        <circle cx={chart.end.x} cy={chart.end.y} r="4" fill="var(--accent)" />
+      </svg>
+      <div class="axis">
+        <span>{key === 'dia' ? 'Ayer' : key === 'todo' ? 'Inicio' : short(p.start)}</span><span
+          >Hoy</span
+        >
+      </div>
+    </section>
+
+    <section class="made f3">
+      <div class="line">
+        <span class="sv-muted">Lo que aportaste</span><span class="num">{eur(p.put, true)}</span>
+      </div>
+      <div class="line">
+        <span class="sv-muted">Lo que ganó tu dinero</span><span class="num accent"
+          >{eur(p.made, true)}{pct(p.rate) ? ` · ${pct(p.rate)}` : ''}</span
+        >
+      </div>
+      <span class="note"
+        >Rentabilidad ponderada por tu dinero. Las transferencias entre tus cuentas no cuentan como
+        ganancia.</span
+      >
+    </section>
+
+    {#if top}
+      {@const t = describe(top, data.today)}
+      <a class="alert f3" href="/alertas">
+        <span class="breathe" aria-hidden="true"></span>
+        <span class="alert-text"
+          ><span class="alert-title">{t.title}</span><span class="sv-muted small"
+            >{t.where}{data.alerts.length > 1
+              ? ` · y ${data.alerts.length - 1} ${data.alerts.length === 2 ? 'alerta' : 'alertas'} más`
+              : ''}</span
+          ></span
+        >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg
+        >
+      </a>
+    {/if}
+
+    <section class="accounts f4" aria-labelledby="cuentas">
+      <div class="head">
+        <h2 id="cuentas" class="sv-label">Cuentas</h2>
+        <span class="small subtle">Ganado · {PERIODS.find((o) => o.key === key)!.short}</span>
+      </div>
+      {#each accounts as a (a.id)}
+        <a class="sv-row" href="/cuentas/{a.id}">
           <span class="sv-row__main">
-            <span class="sv-row__title">Crea tu primera regla</span>
-            <span class="sv-row__meta">Tu nómina, tus gastos fijos o lo que apartas cada mes</span>
+            <span class="sv-row__title">{a.name}</span>
+            <span class="sv-row__meta"
+              >{KIND_LABEL[a.kind as keyof typeof KIND_LABEL] ?? a.kind}</span
+            >
+          </span>
+          <span class="right">
+            <span class="sv-row__value">{eur(a.value)}</span>
+            <span class="small" class:up={a.made > 0} class:down={a.made < 0}
+              >{eur(a.made, true)}</span
+            >
           </span>
         </a>
-      {/if}
-    </div>
+      {/each}
+    </section>
 
-    <div class="side">
-      <section class="f4 accounts" aria-labelledby="cuentas">
-        <div class="head">
-          <h2 id="cuentas">Cuentas</h2>
-          <a href="/cuentas" class="sv-muted">{live.length}</a>
+    {#if split.length}
+      <section class="split f5" aria-labelledby="reparto">
+        <h2 id="reparto" class="sv-label">Reparto</h2>
+        <div
+          class="bar"
+          role="img"
+          aria-label="Reparto: {split
+            .map((s) => `${s.label.toLowerCase()} ${pct(s.share).replace('+', '')}`)
+            .join(', ')}"
+        >
+          {#each split as s (s.label)}
+            <span style:flex-grow={s.share} style:opacity={s.shade}></span>
+          {/each}
         </div>
-        {#each live as a (a.id)}
-          <a class="sv-row" href="/cuentas/{a.id}">
-            <span class="sv-row__main">
-              <span class="sv-row__title">{a.name}</span>
-              <span class="sv-row__meta"
-                >{KIND_LABEL[a.kind]}{a.isEstimated ? ' · valor estimado' : ''}</span
-              >
-            </span>
-            <span class="sv-row__value">
-              {formatEuros(a.kind === 'deuda' ? -a.balanceCents : a.balanceCents, {
-                withCents: true,
-              })}
-            </span>
-          </a>
-        {/each}
+        <div class="legend">
+          {#each split as s (s.label)}
+            <span class="item"
+              ><span class="swatch" style:opacity={s.shade}></span><span class="grow"
+                >{s.label}</span
+              ><span class="num desk">{eur(s.value)}</span><span class="num"
+                >{pct(s.share).replace('+', '')}</span
+              ></span
+            >
+          {/each}
+        </div>
       </section>
+    {/if}
 
-      <p class="sv-legal">Las proyecciones son estimaciones, no asesoramiento.</p>
-    </div>
+    <p class="sv-legal legal">Precios de cierre del día · Estimación, no asesoramiento</p>
   </div>
 {/if}
 
 <style>
+  h1,
+  h2,
+  p {
+    margin: 0;
+  }
+  .home {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'top' 'hero' 'chips' 'chart' 'made' 'alert' 'accounts' 'split' 'legal';
+    gap: var(--space-5);
+  }
   .top {
+    grid-area: top;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--space-6);
   }
-  @media (min-width: 1024px) {
-    .logo {
-      visibility: hidden;
-    }
+  .desk-title {
+    display: none;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
   }
-  .plus {
+  .icons {
+    display: flex;
+    gap: 8px;
+  }
+  .round {
+    position: relative;
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -251,37 +308,85 @@
     justify-content: center;
     color: var(--ink);
     box-shadow: inset 0 0 0 1px var(--hairline-strong);
-  }
-  .welcome {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-4);
-    max-width: 48ch;
-  }
-  h1,
-  h2,
-  p {
-    margin: 0;
-  }
-  .ahead {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-3);
-    margin: var(--space-5) 0 var(--space-6);
-    font-size: 13px;
-    color: inherit;
     text-decoration: none;
   }
-  .up {
+  .avatar {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .bell-dot {
+    position: absolute;
+    top: 8px;
+    right: 9px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg);
+  }
+  .chips {
+    grid-area: chips;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--ink-muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    transition:
+      background var(--duration-fast) var(--ease-standard),
+      color var(--duration-fast) var(--ease-standard);
+  }
+  .chip[aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--bg);
+    font-weight: 600;
+    box-shadow: none;
+  }
+  .chip:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .hero {
+    grid-area: hero;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .kicker {
+    font-size: 14px;
+  }
+  .value {
+    font-size: 48px;
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta {
+    font-size: 13px;
+  }
+  .up,
+  .accent {
     color: var(--accent);
     font-weight: 600;
   }
-  .spark {
-    max-width: 720px;
+  .down {
+    color: var(--negative);
+    font-weight: 600;
   }
-  .spark svg {
+  .chart {
+    grid-area: chart;
+  }
+  .chart svg {
     display: block;
   }
   .axis {
@@ -292,81 +397,168 @@
     font-size: 11px;
     color: var(--ink-subtle);
   }
-  .close {
+  .made {
+    grid-area: made;
     display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 0;
-    margin-bottom: var(--space-5);
-    max-width: 720px;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 0;
     border-top: 1px solid var(--hairline);
     border-bottom: 1px solid var(--hairline);
+  }
+  .line {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .num {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .note,
+  .subtle {
+    font-size: 12px;
+    color: var(--ink-subtle);
+  }
+  .small {
+    font-size: 12px;
+  }
+  .alert {
+    grid-area: alert;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
     color: inherit;
     text-decoration: none;
   }
-  .close:active {
-    transform: scale(0.97);
-  }
-  .close > svg {
+  .alert > svg {
     color: var(--ink-muted);
   }
-  .close__icon {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 40px;
-    border-radius: 12px;
-    background: var(--accent-soft);
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .breathe {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: sv-breathe var(--duration-ambient) ease-in-out infinite;
   }
-  .card,
+  .alert-text {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .alert-title {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .accounts {
+    grid-area: accounts;
+    display: flex;
+    flex-direction: column;
+  }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 4px;
+  }
   .accounts .sv-row {
     color: inherit;
     text-decoration: none;
   }
-  .card {
-    margin-bottom: var(--space-5);
-    border-top: 1px solid var(--hairline);
-  }
-  .accounts {
+  .right {
     display: flex;
     flex-direction: column;
-    max-width: 720px;
+    align-items: flex-end;
+    gap: 1px;
   }
-  /* Desktop: your wealth and where it goes on the left, the accounts that make it on the right. */
-  @media (min-width: 1024px) {
-    .cols {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
-      align-items: start;
-      gap: var(--space-8);
-    }
-    .side {
-      padding-top: var(--space-2);
-    }
-  }
-  .head {
+  .split {
+    grid-area: split;
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    padding-bottom: var(--space-2);
+    flex-direction: column;
+    gap: 10px;
   }
-  h2 {
-    font-size: 17px;
-    font-weight: 600;
+  .bar {
+    display: flex;
+    gap: 3px;
+    height: 6px;
   }
-  .head a {
-    font-size: 13px;
+  .bar span {
+    flex-basis: 0;
+    min-width: 3px;
+    border-radius: 3px;
+    background: var(--accent);
   }
-  .sv-legal {
-    margin-top: var(--space-6);
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 16px;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  .item .num {
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .swatch {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .grow {
+    flex: 1 1 auto;
+  }
+  .desk {
+    display: none;
+  }
+  .legal {
+    grid-area: legal;
+  }
+  @media (min-width: 1024px) {
+    .home {
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+      grid-template-areas:
+        'top chips'
+        'hero made'
+        'chart alert'
+        'accounts split'
+        'legal legal';
+      column-gap: var(--space-8);
+      align-items: start;
+    }
+    .logo,
+    .icons {
+      display: none;
+    }
+    .desk-title {
+      display: block;
+    }
+    .chips {
+      justify-content: flex-end;
+    }
+    .legend {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .desk {
+      display: inline;
+    }
   }
   .f1,
   .f2,
   .f3,
-  .f4 {
+  .f4,
+  .f5 {
     animation: sv-fade-up 0.8s var(--ease-out) both;
   }
   .f2 {
@@ -378,11 +570,16 @@
   .f4 {
     animation-delay: 0.3s;
   }
+  .f5 {
+    animation-delay: 0.4s;
+  }
   @media (prefers-reduced-motion: reduce) {
     .f1,
     .f2,
     .f3,
-    .f4 {
+    .f4,
+    .f5,
+    .breathe {
       animation: none;
     }
   }

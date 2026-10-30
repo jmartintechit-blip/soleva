@@ -1,6 +1,8 @@
 import { addMonths } from '#lib/engine/dates.ts';
 import { type Day, addDays, dayIn, monthOf } from '#lib/engine/day.ts';
+import type { StoredAlert } from '#lib/alerts.ts';
 import { moneyWeighted } from '#lib/engine/insight.ts';
+import { PERIODS, type PeriodKey } from '#lib/labels.ts';
 import type { Db } from './db/index.ts';
 
 export interface DayRow {
@@ -11,15 +13,7 @@ export interface DayRow {
   accounts: Record<string, [number, number]>;
 }
 
-export const PERIODS = [
-  { key: 'dia', label: 'Día', short: 'hoy' },
-  { key: 'mes', label: 'Mes', short: 'mes' },
-  { key: 'm3', label: '3M', short: '3 meses' },
-  { key: 'm6', label: '6M', short: '6 meses' },
-  { key: 'ano', label: 'Año', short: 'año' },
-  { key: 'todo', label: 'Todo', short: 'total' },
-] as const;
-export type PeriodKey = (typeof PERIODS)[number]['key'];
+export { PERIODS, type PeriodKey };
 
 // The day each period starts from (its value is the one at the end of that day).
 export function periodStart(key: PeriodKey, today: Day, first: Day): Day {
@@ -93,7 +87,7 @@ export async function loadHome(db: Db, userId: string) {
        'classes', (select classes from user_day where user_id = $1 order by day desc limit 1),
        'accounts', (select coalesce(json_agg(json_build_object('id', id, 'name', name, 'kind', kind)
                       order by created_at, id), '[]') from a where archived_at is null),
-       'alerts', (select coalesce(json_agg(json_build_object('kind', l.kind, 'day', l.day,
+       'alerts', (select coalesce(json_agg(json_build_object('id', l.id, 'accountId', l.account_id, 'detail', l.detail, 'kind', l.kind, 'day', l.day,
                     'account', (select name from a where a.id = l.account_id),
                     'instrument', (select name from instrument i where i.id = l.instrument_id))
                     order by l.state, l.day), '[]')
@@ -105,7 +99,7 @@ export async function loadHome(db: Db, userId: string) {
     days: [Day, number, number, Record<string, [number, number]>][];
     classes: Record<string, number> | null;
     accounts: { id: string; name: string; kind: string }[];
-    alerts: { kind: string; day: Day; account: string | null; instrument: string | null }[];
+    alerts: StoredAlert[];
   };
   return {
     rows: data.days.map(([day, total, flows, accounts]): DayRow => ({

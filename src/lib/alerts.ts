@@ -34,6 +34,14 @@ export function describe(a: StoredAlert, today: string) {
         href: `/reglas/${d.ruleId}`,
       };
     case 'sin_saldo': {
+      if (Number(d.cash) < 0)
+        return {
+          where: a.account ?? '',
+          title: 'Esta cuenta está en negativo',
+          body: `Tiene ${eur(d.cash)}: con tus reglas sale más dinero del que entra.`,
+          action: 'Ver la cuenta',
+          href: `/cuentas/${a.accountId}`,
+        };
       const months = Math.max(
         0,
         Math.round((Date.parse(a.day) - Date.parse(today)) / (30.44 * 86_400_000)),

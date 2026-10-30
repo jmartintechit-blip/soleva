@@ -9,7 +9,23 @@ export const KIND_LABEL = {
   vehiculo: 'Vehículo',
   otro: 'Otro',
   deuda: 'Deuda o préstamo',
+  broker: 'Bróker',
+  deuda_hipoteca: 'Hipoteca',
+  deuda_prestamo: 'Préstamo',
+  bien: 'Bien',
+  deposito: 'Depósito',
+  letra: 'Letras del Tesoro',
 } as const;
+
+// Inicio's breakdown by kind of asset (engine/insight.ts AssetClass).
+export const CLASS_LABEL: Record<string, string> = {
+  liquidez: 'Liquidez',
+  renta_variable: 'Renta variable',
+  oro: 'Oro',
+  cripto: 'Cripto',
+  inmuebles: 'Inmuebles',
+  bienes: 'Bienes',
+};
 
 // These follow the projection's scenario return, so they have no rate of their own.
 export const FOLLOWS_SCENARIO = ['inversion', 'pension', 'cripto'];
@@ -39,3 +55,14 @@ export type Theme = (typeof THEMES)[number]['id'];
 export const THEME_COOKIE = 'soleva_theme';
 export const asTheme = (v: string | undefined | null): Theme =>
   THEMES.find((t) => t.id === v)?.id ?? 'amanecer';
+
+// Inicio's periods (server/home.ts computes them).
+export const PERIODS = [
+  { key: 'dia', label: 'Día', short: 'hoy' },
+  { key: 'mes', label: 'Mes', short: 'mes' },
+  { key: 'm3', label: '3M', short: '3 meses' },
+  { key: 'm6', label: '6M', short: '6 meses' },
+  { key: 'ano', label: 'Año', short: 'año' },
+  { key: 'todo', label: 'Todo', short: 'total' },
+] as const;
+export type PeriodKey = (typeof PERIODS)[number]['key'];

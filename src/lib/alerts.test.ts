@@ -35,6 +35,15 @@ group('alert texts', () => {
     expect(cash.body).toBe('Tiene 142,10 € y, con tus reglas, el 2 de enero bajaría de cero.');
     expect(
       describe(
+        { ...base, kind: 'sin_saldo', day: '2026-11-09', detail: { cash: -35_000 } } as StoredAlert,
+        '2026-11-02',
+      ),
+    ).toMatchObject({
+      title: 'Esta cuenta está en negativo',
+      body: 'Tiene −350 €: con tus reglas sale más dinero del que entra.',
+    });
+    expect(
+      describe(
         {
           ...base,
           kind: 'fin_promocion',
