@@ -66,3 +66,27 @@ export const PERIODS = [
   { key: 'todo', label: 'Todo', short: 'total' },
 ] as const;
 export type PeriodKey = (typeof PERIODS)[number]['key'];
+
+// Alta inicial (b11/NAlta): what can go in, and what its amount is called.
+export const ALTA_KINDS = [
+  { kind: 'efectivo', label: 'Cuenta bancaria', hint: 'nómina, día a día', amount: 'Saldo hoy' },
+  { kind: 'remunerada', label: 'Cuenta remunerada', hint: 'con interés', amount: 'Saldo hoy' },
+  {
+    kind: 'broker',
+    label: 'Bróker o inversiones',
+    hint: 'ETF, fondos, acciones',
+    amount: 'Efectivo en la cuenta',
+  },
+  { kind: 'cripto', label: 'Cripto', hint: 'precio automático', amount: 'Efectivo en la cuenta' },
+  { kind: 'vehiculo', label: 'Coche o moto', hint: 'lo que vale hoy', amount: 'Valor hoy' },
+  { kind: 'bien', label: 'Otro bien', hint: 'PC, joyas, reloj…', amount: 'Valor hoy' },
+  {
+    kind: 'deuda_hipoteca',
+    label: 'Hipoteca o préstamo',
+    hint: 'lo que te queda',
+    amount: 'Lo que debes',
+  },
+] as const;
+export type AltaKind = (typeof ALTA_KINDS)[number]['kind'];
+// Where its products go in next.
+export const WITH_PRODUCTS: AltaKind[] = ['broker', 'cripto'];

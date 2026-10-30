@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { lastClosedMonth, monthToClose, netWorthHistory } from '#lib/server/closes.ts';
 import { runUser } from '#lib/server/engine-run.ts';
 import { PERIODS, loadHome, period } from '#lib/server/home.ts';
@@ -17,6 +18,8 @@ export const load: PageServerLoad = async (event) => {
     // On the ledger: catch up first if the cron has not run for this user yet today.
     if (state.through < day) await runUser(db, userId, day);
     const home = await loadHome(db, userId);
+    // Nothing in yet: the Alta inicial first.
+    if (!home.accounts.length) redirect(303, '/alta');
     const last = home.rows.at(-1);
     return {
       ledger: true as const,

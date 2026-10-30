@@ -12,7 +12,7 @@
   const eur = (cents: number, sign = false) =>
     `${sign && cents > 0 ? '+' : ''}${formatEuros(cents, { withCents: true })}`;
   const href = (symbol: string | null) =>
-    `?q=${encodeURIComponent(data.q)}${symbol ? `&elegido=${encodeURIComponent(symbol)}` : ''}`;
+    `?q=${encodeURIComponent(data.q)}${symbol ? `&elegido=${encodeURIComponent(symbol)}` : ''}${data.fromAlta ? '&volver=alta' : ''}`;
 
   let units = $state(untrack(() => form?.values?.units ?? ''));
   let avg = $state(untrack(() => form?.values?.avg ?? ''));
@@ -40,7 +40,11 @@
   <span class="grip" aria-hidden="true"></span>
   <div class="head">
     <h1 id="sheet-title">Añadir a {data.account.name}</h1>
-    <a class="close" href="/cuentas/{data.account.id}" aria-label="Cerrar">
+    <a
+      class="close"
+      href={data.fromAlta ? '/alta' : `/cuentas/${data.account.id}`}
+      aria-label="Cerrar"
+    >
       <svg
         width="16"
         height="16"
@@ -55,6 +59,7 @@
   </div>
 
   <form method="GET" class="search" role="search">
+    {#if data.fromAlta}<input type="hidden" name="volver" value="alta" />{/if}
     <label class="box">
       <svg
         width="18"
@@ -123,6 +128,7 @@
           {#if data.chosen}
             <form method="POST" use:enhance class="fields" id="add">
               <input type="hidden" name="symbol" value={shown.symbol} />
+              {#if data.fromAlta}<input type="hidden" name="volver" value="alta" />{/if}
               <label
                 >Participaciones<input
                   name="units"

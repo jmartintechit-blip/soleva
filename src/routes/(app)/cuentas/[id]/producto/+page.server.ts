@@ -27,6 +27,8 @@ export const load: PageServerLoad = async (event) => {
     results,
     chosen: chosen ? ((await quote(db, chosen, day))?.quote ?? null) : null,
     chosenSymbol: chosen,
+    // From the Alta inicial: close goes back there, and each add comes back here for the next.
+    fromAlta: event.url.searchParams.get('volver') === 'alta',
   };
 };
 
@@ -61,6 +63,11 @@ export const actions: Actions = {
       return fail(503, { values, errors });
     }
     await runUser(db, userId, day);
-    redirect(303, `/cuentas/${event.params.id}`);
+    redirect(
+      303,
+      form.get('volver') === 'alta'
+        ? `/cuentas/${event.params.id}/producto?volver=alta`
+        : `/cuentas/${event.params.id}`,
+    );
   },
 };
