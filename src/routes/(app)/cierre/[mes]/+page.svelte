@@ -71,7 +71,11 @@
                     : 'Como lo propusieron tus reglas'}</span
               >
             </span>
-            <span class="sv-row__value">{value(l.confirmedCents, l.isDebt)}</span>
+            <span
+              class="sv-row__value"
+              class:sv-neg={l.isDebt ? l.confirmedCents > 0 : l.confirmedCents < 0}
+              >{value(l.confirmedCents, l.isDebt)}</span
+            >
             <!-- The summary does the toggling; this says what it is for. -->
             <span class="fix">Corregir</span>
           </summary>
@@ -133,7 +137,7 @@
   <div class="side">
     <section class="f3 total">
       <span class="sv-muted">Patrimonio al cerrar</span>
-      <span class="sum">{formatEuros(net, { withCents: true })}</span>
+      <span class="sum" class:sv-neg={net < 0}>{formatEuros(net, { withCents: true })}</span>
     </section>
     {#if form?.amended}
       <p class="saved" role="status">Cambio guardado</p>

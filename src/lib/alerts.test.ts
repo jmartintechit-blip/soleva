@@ -27,6 +27,23 @@ group('alert texts', () => {
       action: 'Ver el plan',
       href: '/reglas/r1',
     });
+    expect(
+      describe(
+        {
+          ...base,
+          kind: 'compra_no_ejecutada',
+          day: '2026-11-30',
+          detail: { ruleId: 'r1', count: 2, cents: 12_000 },
+        } as StoredAlert,
+        '2026-11-30',
+      ),
+    ).toEqual({
+      where: 'Bróker',
+      title: 'Tu plan no compró: faltaba efectivo',
+      body: 'El 30 de noviembre 2 compras quedaron sin hacer: hacían falta 120 € y no estaban en la cuenta. No se apuntó ninguna participación.',
+      action: 'Ver el plan',
+      href: '/reglas/r1',
+    });
     const cash = describe(
       { ...base, kind: 'sin_saldo', day: '2027-01-02', detail: { cash: 14_210 } } as StoredAlert,
       '2026-11-02',

@@ -6,7 +6,8 @@
   let { data }: PageProps = $props();
 
   const shown = $derived(data.alerts.map((a) => ({ ...a, text: describe(a, data.today) })));
-  const hot = (kind: string) => kind === 'sin_saldo' || kind === 'plan_supera';
+  const hot = (kind: string) =>
+    kind === 'sin_saldo' || kind === 'plan_supera' || kind === 'compra_no_ejecutada';
 </script>
 
 <svelte:head>

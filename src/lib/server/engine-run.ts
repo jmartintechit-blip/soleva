@@ -38,8 +38,15 @@ interface Setup {
   accounts: { id: string; kind: AccountKind }[];
   rules: (Omit<
     AutoRule,
-    'amountCents' | 'legs' | 'day' | 'endOn' | 'fromAccountId' | 'toAccountId'
+    | 'amountCents'
+    | 'legs'
+    | 'day'
+    | 'endOn'
+    | 'fromAccountId'
+    | 'toAccountId'
+    | 'shortfallAccountId'
   > & {
+    shortfallAccountId: string | null;
     day: number | null;
     endOn: Day | null;
     fromAccountId: string | null;
@@ -117,6 +124,7 @@ async function readSetup(tx: Db, userId: string): Promise<Setup> {
        'rules', (select coalesce(json_agg(json_build_object('id', r.id, 'kind', r.kind, 'frequency', r.frequency,
            'day', r.day, 'startOn', r.start_on, 'endOn', r.end_on, 'fromAccountId', r.from_account_id,
            'toAccountId', r.to_account_id, 'amountCents', r.amount_cents::text, 'active', r.active,
+           'shortfall', r.shortfall, 'shortfallAccountId', r.shortfall_account_id,
            'legs', (select coalesce(json_agg(json_build_object('instrumentId', l.instrument_id,
                       'amountCents', l.amount_cents::text) order by l.seq), '[]')
                     from auto_rule_leg l where l.rule_id = r.id))
@@ -285,6 +293,7 @@ export async function loadUser(tx: Db, userId: string, setup: Setup, from: Day, 
     endOn: r.endOn ?? undefined,
     fromAccountId: r.fromAccountId ?? undefined,
     toAccountId: r.toAccountId ?? undefined,
+    shortfallAccountId: r.shortfallAccountId ?? undefined,
     amountCents: num(r.amountCents),
     legs: r.legs.map((l) => ({ instrumentId: l.instrumentId, amountCents: Number(l.amountCents) })),
   }));

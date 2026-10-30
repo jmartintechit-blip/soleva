@@ -4,7 +4,7 @@ import { formatEuros } from '#lib/engine/money.ts';
 // or switch to (CNMV red line). Shared by Alertas, Inicio and the sidebar.
 export interface StoredAlert {
   id: string;
-  kind: 'sin_saldo' | 'plan_supera' | 'fin_promocion' | 'precio_viejo';
+  kind: 'sin_saldo' | 'plan_supera' | 'fin_promocion' | 'precio_viejo' | 'compra_no_ejecutada';
   day: string;
   accountId: string | null;
   account: string | null;
@@ -57,6 +57,14 @@ export function describe(a: StoredAlert, today: string) {
         href: `/cuentas/${a.accountId}`,
       };
     }
+    case 'compra_no_ejecutada':
+      return {
+        where: a.account ?? '',
+        title: 'Tu plan no compró: faltaba efectivo',
+        body: `El ${date(a.day)} ${Number(d.count) === 1 ? 'una compra quedó' : `${d.count} compras quedaron`} sin hacer: hacían falta ${eur(d.cents)} y no estaban en la cuenta. No se apuntó ninguna participación.`,
+        action: 'Ver el plan',
+        href: `/reglas/${d.ruleId}`,
+      };
     case 'fin_promocion':
       return {
         where: a.account ?? '',

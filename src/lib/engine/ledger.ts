@@ -16,7 +16,9 @@ export type MovementKind =
   | 'amortizacion'
   | 'ajuste'
   | 'traspaso_valores'
-  | 'split';
+  | 'split'
+  // A plan's buy that did not happen for lack of cash: nothing moved.
+  | 'no_ejecutada';
 
 export interface Movement {
   accountId: string;

@@ -211,7 +211,7 @@ export function moneyWeighted(
 }
 
 export type Alert = {
-  kind: 'sin_saldo' | 'plan_supera' | 'fin_promocion' | 'precio_viejo';
+  kind: 'sin_saldo' | 'plan_supera' | 'fin_promocion' | 'precio_viejo' | 'compra_no_ejecutada';
   day: Day;
   accountId?: string;
   instrumentId?: string;
@@ -348,6 +348,29 @@ export function alerts(
         },
       });
   }
+
+  // A plan's buys left undone for lack of cash in the last week, one alert per plan.
+  const undone = new Map<string, { day: Day; count: number; cents: number; accountId: string }>();
+  for (const m of ledger)
+    if (m.kind === 'no_ejecutada' && !m.voided && m.ruleId && m.day > addDays(today, -7)) {
+      const leg = input.rules
+        .find((r) => r.id === m.ruleId)
+        ?.legs.find((l) => l.instrumentId === m.instrumentId);
+      const u = undone.get(m.ruleId) ?? { day: m.day, count: 0, cents: 0, accountId: m.accountId };
+      u.count++;
+      u.cents += leg?.amountCents ?? 0;
+      if (m.day > u.day) u.day = m.day;
+      undone.set(m.ruleId, u);
+    }
+  for (const [ruleId, u] of undone)
+    out.push({
+      kind: 'compra_no_ejecutada',
+      day: u.day,
+      accountId: u.accountId,
+      ruleId,
+      key: `compra_no_ejecutada:${ruleId}`,
+      detail: { ruleId, count: u.count, cents: u.cents },
+    });
 
   const forecast = forecastCash(input, h, ledger, today, prior, hand);
   const cashToday = fold(ledger, today).cash;

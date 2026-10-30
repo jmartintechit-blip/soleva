@@ -12,7 +12,7 @@ export const load: PageServerLoad = async (event) => {
      from alert l left join money_account a on a.id = l.account_id
      left join instrument i on i.id = l.instrument_id
      where l.user_id = $1 and l.state = 'abierta'
-     order by l.kind in ('sin_saldo', 'plan_supera') desc, l.day, l.id`,
+     order by l.kind in ('sin_saldo', 'plan_supera', 'compra_no_ejecutada') desc, l.day, l.id`,
     [userId],
   );
   return { alerts, today: today() };

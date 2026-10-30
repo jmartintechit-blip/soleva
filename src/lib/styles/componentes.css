@@ -64,6 +64,8 @@
 .sv-pill__dot{width:8px;height:8px;border-radius:50%;background:var(--ink-muted);flex:0 0 auto}
 .sv-pill--ok{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line)}
 .sv-pill--ok .sv-pill__dot{background:var(--accent);animation:sv-breathe var(--duration-ambient) ease-in-out infinite}
+/* A balance below zero: in red, with its «−» (over each screen's own colour for that number). */
+.sv-neg{color:var(--negative)!important}
 .sv-pill--neg{background:var(--negative-soft);box-shadow:none}
 .sv-pill--neg .sv-pill__dot{background:var(--negative)}
 

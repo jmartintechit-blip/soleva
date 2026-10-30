@@ -306,3 +306,45 @@ describe('accruedInterest', () => {
     expect(accruedInterest(input, paid, '2026-11-30')).toEqual({ brk: 0 });
   });
 });
+
+describe('plans without enough cash', () => {
+  const plan = (extra: Partial<AutoRule>) =>
+    rule({
+      id: 'p',
+      kind: 'plan',
+      frequency: 'semanal',
+      day: 1,
+      startOn: '2026-11-01',
+      fromAccountId: 'brk',
+      legs: [{ instrumentId: 'world', amountCents: 30_000 }],
+      ...extra,
+    });
+  const priced = { ...none, market: market({ world: { currency: 'EUR', price: '100' } }) };
+
+  it('never takes the broker below zero: the buy is left undone, and only once', () => {
+    const input = { ...priced, rules: [plan({})] };
+    const ledger = [opening('brk', 50_000)];
+    const out = advance(input, ledger, '2026-10-31', '2026-11-09');
+    expect(out.map((m) => [m.day, m.kind, m.amountCents, m.qtyE8])).toEqual([
+      ['2026-11-02', 'compra', -30_000, toE8(3)],
+      ['2026-11-09', 'no_ejecutada', 0, undefined],
+    ]);
+    expect(fold([...ledger, ...out]).cash.get('brk')).toBe(20_000);
+    expect(advance(input, [...ledger, ...out], '2026-10-31', '2026-11-09')).toEqual([]);
+  });
+
+  it('or brings the money from the account chosen, then buys', () => {
+    const input = {
+      ...priced,
+      rules: [plan({ shortfall: 'otra_cuenta', shortfallAccountId: 'rem' })],
+    };
+    const ledger = [opening('brk', 10_000), opening('rem', 100_000)];
+    const out = advance(input, ledger, '2026-10-31', '2026-11-02');
+    expect(out.map((m) => [m.accountId, m.kind, m.amountCents])).toEqual([
+      ['rem', 'transferencia', -30_000],
+      ['brk', 'transferencia', 30_000],
+      ['brk', 'compra', -30_000],
+    ]);
+    expect(fold([...ledger, ...out]).cash.get('brk')).toBe(10_000);
+  });
+});

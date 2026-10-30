@@ -281,6 +281,37 @@ describe('reference case', () => {
     ).toBe('2027-02-28');
   });
 
+  it('never takes the broker below zero: a buy that does not fit is left undone, or paid from elsewhere', () => {
+    // With no monthly transfer and the plan doubled (500 € a week), the broker's cash runs out.
+    const short = input(0);
+    const plan = short.rules.find((r) => r.id === 'plan')!;
+    plan.legs = plan.legs.map((l) => ({ ...l, amountCents: l.amountCents * 2 }));
+    const lowest = (ms: Movement[]) =>
+      Math.min(...daysAfter(START, END).map((d) => fold(ms, d).cash.get('brk')!));
+    const undone = daily(short);
+    const left = undone.filter((m) => m.kind === 'no_ejecutada');
+    expect(left.length).toBeGreaterThan(0);
+    expect(left.every((m) => m.amountCents === 0 && m.qtyE8 === undefined)).toBe(true);
+    expect(lowest(undone)).toBeGreaterThanOrEqual(0);
+    const last = left.at(-1)!.day;
+    expect(alerts(short, holdings, undone, last).alerts.map((a) => a.key)).toContain(
+      'compra_no_ejecutada:plan',
+    );
+
+    // «Cobrarlo de otra cuenta»: the savings account pays what the broker lacks, and every buy happens.
+    plan.shortfall = 'otra_cuenta';
+    plan.shortfallAccountId = 'rem';
+    const covered = daily(short);
+    expect(covered.some((m) => m.kind === 'no_ejecutada')).toBe(false);
+    expect(lowest(covered)).toBeGreaterThanOrEqual(0);
+    const brought = covered.filter((m) => m.occurrenceKey?.endsWith(':cubre:out'));
+    expect(brought.every((m) => m.accountId === 'rem')).toBe(true);
+    expect(brought.length).toBeGreaterThan(0);
+    expect(covered.filter((m) => m.kind === 'compra' && m.ruleId === 'plan').length).toBe(
+      ledger.filter((m) => m.kind === 'compra' && m.ruleId === 'plan').length,
+    );
+  });
+
   it('values everything in euros: USD at the ECB rate, ETH to 8 decimals, estimates, the 2013 car', () => {
     const v = valuation(holdings, ledger, END);
     const held = fold(ledger, END).holdings;

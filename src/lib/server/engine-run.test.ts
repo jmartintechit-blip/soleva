@@ -64,7 +64,7 @@ describe('runUser', () => {
     expect(await runUser(db, 'ana', '2026-11-02')).toEqual({
       generated: 3,
       repriced: 0,
-      alerts: 2,
+      alerts: 1,
     });
     expect(
       await db.query(
@@ -76,13 +76,10 @@ describe('runUser', () => {
       { kind: 'compra', a: -25000, provisional: true },
     ]);
     expect(await db.query(`select qty_e8::text as q from position`)).toEqual([{ q: '250000000' }]);
-    // 250 € a week is more than the 1.000 € a month that come in, and the broker's 1.100 € are
-    // −150 € after the Monday of 30 November, the day before the next transfer.
+    // 250 € a week is more than the 1.000 € a month that come in. The broker itself never goes
+    // below zero: the buy that does not fit is left undone (see below), not paid on credit.
     expect(await db.query(`select kind, day::text as day, state from alert order by kind`)).toEqual(
-      [
-        { kind: 'plan_supera', day: '2026-11-02', state: 'abierta' },
-        { kind: 'sin_saldo', day: '2026-11-30', state: 'abierta' },
-      ],
+      [{ kind: 'plan_supera', day: '2026-11-02', state: 'abierta' }],
     );
     expect(await count(`from user_day where user_id = 'ana'`)).toBe(2);
 
@@ -100,9 +97,45 @@ describe('runUser', () => {
     // The rule stops: the alert is resolved on the next run.
     await db.query(`update auto_rule set active = false where id = 'p'`);
     await runUser(db, 'ana', '2026-11-04');
-    expect(await db.query(`select state from alert`)).toEqual([
-      { state: 'resuelta' },
-      { state: 'resuelta' },
+    expect(await db.query(`select state from alert`)).toEqual([{ state: 'resuelta' }]);
+  });
+
+  it('leaves undone the buy the broker cannot pay, or brings the money from the account chosen', async () => {
+    // The broker's 1.100 € pay four Mondays; on 30 November 100 € are left for a 250 € buy.
+    await runUser(db, 'ana', '2026-11-30');
+    expect(
+      await db.query(
+        `select day::text as d, amount_cents::float8 as a, qty_e8 from movement where kind = 'no_ejecutada'`,
+      ),
+    ).toEqual([{ d: '2026-11-30', a: 0, qty_e8: null }]);
+    expect(
+      await db.query(`select kind, detail from alert where kind = 'compra_no_ejecutada'`),
+    ).toEqual([{ kind: 'compra_no_ejecutada', detail: { ruleId: 'p', count: 1, cents: 25000 } }]);
+
+    // Another user's account cannot pay for the plan; an own one can, from then on. Without
+    // December's transfer the broker is short again on 7 December.
+    const [{ id: eva }] = await db.query<{ id: string }>(
+      `insert into money_account (user_id, name, kind, balance_cents) values ('eva', 'e', 'efectivo', 0) returning id`,
+    );
+    const choose = (account: string) =>
+      db.query(
+        `update auto_rule set shortfall = 'otra_cuenta', shortfall_account_id = $1 where id = 'p'`,
+        [account],
+      );
+    await expect(choose(eva!)).rejects.toThrow(/cannot change/);
+    await choose(acc.rem!);
+    await db.query(`update auto_rule set active = false where id = 't'`);
+    await runUser(db, 'ana', '2026-12-07');
+    expect(
+      await db.query(
+        `select account_id = $1 as rem, kind, amount_cents::float8 as a from movement
+          where day = '2026-12-07' order by seq`,
+        [acc.rem],
+      ),
+    ).toEqual([
+      { rem: true, kind: 'transferencia', a: -25000 },
+      { rem: false, kind: 'transferencia', a: 25000 },
+      { rem: false, kind: 'compra', a: -25000 },
     ]);
   });
 

@@ -20,7 +20,10 @@
       <span class="sv-row__title">{a.name}</span>
       <span class="sv-row__meta">{KIND_LABEL[a.kind]}{a.isEstimated ? ' · estimado' : ''}</span>
     </span>
-    <span class="sv-row__value">
+    <span
+      class="sv-row__value"
+      class:sv-neg={(a.kind === 'deuda' ? -a.balanceCents : a.balanceCents) < 0}
+    >
       {formatEuros(a.kind === 'deuda' ? -a.balanceCents : a.balanceCents, { withCents: true })}
     </span>
   </a>
@@ -29,7 +32,9 @@
 <header class="sv-enter">
   <div class="sv-hero">
     <span class="sv-hero__label">Patrimonio</span>
-    <span class="sv-hero__value">{formatEuros(netWorth(data.accounts), { withCents: true })}</span>
+    <span class="sv-hero__value" class:sv-neg={netWorth(data.accounts) < 0}
+      >{formatEuros(netWorth(data.accounts), { withCents: true })}</span
+    >
     <span class="sv-hero__meta">Lo que tienes menos lo que debes.</span>
   </div>
   <a class="sv-btn sv-btn--primary sv-btn--sm" href="/cuentas/nueva">Nueva cuenta</a>

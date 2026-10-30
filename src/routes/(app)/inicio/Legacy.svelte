@@ -89,7 +89,7 @@
     <div class="main">
       <section class="sv-hero f1">
         <span class="sv-hero__label">Tu patrimonio hoy</span>
-        <span class="sv-hero__value" aria-live="polite"
+        <span class="sv-hero__value" aria-live="polite" class:sv-neg={shown.value < 0}
           >{formatEuros(shown.value, { withCents: true })}</span
         >
         <span class="sv-hero__meta">
@@ -217,7 +217,10 @@
                 >{KIND_LABEL[a.kind]}{a.isEstimated ? ' · valor estimado' : ''}</span
               >
             </span>
-            <span class="sv-row__value">
+            <span
+              class="sv-row__value"
+              class:sv-neg={(a.kind === 'deuda' ? -a.balanceCents : a.balanceCents) < 0}
+            >
               {formatEuros(a.kind === 'deuda' ? -a.balanceCents : a.balanceCents, {
                 withCents: true,
               })}

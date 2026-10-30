@@ -92,7 +92,9 @@
           <span class="sv-row__main">
             <span class="sv-row__title">{title(h.month)} {h.month.slice(0, 4)}</span>
           </span>
-          <span class="sv-row__value">{formatEuros(h.netCents, { withCents: true })}</span>
+          <span class="sv-row__value" class:sv-neg={h.netCents < 0}
+            >{formatEuros(h.netCents, { withCents: true })}</span
+          >
         </a>
       {/each}
     </section>
@@ -148,7 +150,7 @@
     </div>
     <div class="result">
       <span class="sv-muted small">Tu patrimonio</span>
-      <span class="big" aria-live="polite"
+      <span class="big" aria-live="polite" class:sv-neg={(counting ? shown.value : done.net) < 0}
         >{formatEuros(counting ? shown.value : done.net, {
           withCents: true,
         })}</span
@@ -230,7 +232,7 @@
                   >{isEdited ? 'Corregido por ti' : meta(l)}</span
                 >
               </span>
-              <span class="sv-row__value"
+              <span class="sv-row__value" class:sv-neg={(l.account.kind === 'deuda' ? -c : c) < 0}
                 >{formatEuros(l.account.kind === 'deuda' ? -c : c, { withCents: true })}</span
               >
             </summary>
@@ -266,7 +268,7 @@
     <div class="side">
       <section class="f3 total">
         <span class="sv-muted">Patrimonio al cerrar</span>
-        <span class="sum">{formatEuros(total, { withCents: true })}</span>
+        <span class="sum" class:sv-neg={total < 0}>{formatEuros(total, { withCents: true })}</span>
       </section>
 
       <div class="f4 actions">

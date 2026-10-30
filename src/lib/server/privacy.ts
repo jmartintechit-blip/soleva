@@ -50,7 +50,8 @@ export async function exportData(db: Db, userId: string) {
        left join instrument i on i.id = m.instrument_id
        where m.account_id in (${OWN}) order by m.day, m.account_id, m.seq, m.created_at, m.id`),
     q(`select id, name, kind, frequency, day, start_on::text as start_on, end_on::text as end_on,
-         from_account_id, to_account_id, ${eur('amount_cents')} as amount_eur, active,
+         from_account_id, to_account_id, ${eur('amount_cents')} as amount_eur, active, shortfall,
+         shortfall_account_id,
          ${iso('created_at')} as created_at
        from auto_rule where user_id = $1 order by created_at, id`),
     q(`select l.rule_id, l.seq, i.name as instrument, i.isin, ${eur('l.amount_cents')} as amount_eur

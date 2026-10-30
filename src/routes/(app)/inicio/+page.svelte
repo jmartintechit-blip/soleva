@@ -132,7 +132,7 @@
     <div class="main">
       <section class="hero f1">
         <span class="sv-muted kicker">Tu patrimonio</span>
-        <span class="value" aria-live="polite"
+        <span class="value" aria-live="polite" class:sv-neg={p.value < 0}
           >{formatEuros(Math.round(shown.value) === p.value ? p.value : shown.value, {
             withCents: true,
           })}</span
@@ -196,7 +196,7 @@
               >
             </span>
             <span class="right">
-              <span class="sv-row__value">{eur(a.value)}</span>
+              <span class="sv-row__value" class:sv-neg={a.value < 0}>{eur(a.value)}</span>
               <span class="small" class:up={a.made > 0} class:down={a.made < 0}
                 >{eur(a.made, true)}</span
               >
@@ -263,8 +263,8 @@
               <span class="item"
                 ><span class="swatch" style:opacity={s.shade}></span><span class="grow"
                   >{s.label}</span
-                ><span class="num desk">{eur(s.value)}</span><span class="num"
-                  >{pct(s.share).replace('+', '')}</span
+                ><span class="num desk" class:sv-neg={s.value < 0}>{eur(s.value)}</span><span
+                  class="num">{pct(s.share).replace('+', '')}</span
                 ></span
               >
             {/each}

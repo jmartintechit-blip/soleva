@@ -17,6 +17,9 @@ export interface AutoRule {
   amountCents?: number;
   legs: { instrumentId: string; amountCents: number }[];
   active: boolean;
+  // A plan's buy with too little cash: not done (default), or paid from another account.
+  shortfall?: 'no_comprar' | 'otra_cuenta';
+  shortfallAccountId?: string;
 }
 
 export interface Dividend {
@@ -128,9 +131,49 @@ export function advance(input: EngineInput, ledger: readonly Movement[], from: D
         for (const occ of occurrences(r, addDays(d, -3), d).filter((o) => businessDay(o) === d))
           r.legs.forEach((leg, i) => {
             const key = `rule:${r.id}:${occ}:${i}`;
+            if (done.has(key)) return;
             const quote = input.market.close(leg.instrumentId, d);
             const fx = perEur(input.market, leg.instrumentId, d);
             if (!quote || !fx) return; // no price at all: the stale-price alert says so
+            // A broker never goes below zero: bring the money from the chosen account, or leave
+            // the buy undone (no units, and an alert).
+            if ((cash.get(r.fromAccountId!) ?? 0) < leg.amountCents) {
+              if (r.shortfall === 'otra_cuenta' && r.shortfallAccountId) {
+                const t = `${key}:cubre`;
+                emit({
+                  accountId: r.shortfallAccountId,
+                  day: d,
+                  kind: 'transferencia',
+                  amountCents: -leg.amountCents,
+                  transferId: t,
+                  ruleId: r.id,
+                  occurrenceKey: `${t}:out`,
+                  source: 'regla',
+                });
+                emit({
+                  accountId: r.fromAccountId!,
+                  day: d,
+                  kind: 'transferencia',
+                  amountCents: leg.amountCents,
+                  transferId: t,
+                  ruleId: r.id,
+                  occurrenceKey: `${t}:in`,
+                  source: 'regla',
+                });
+              } else {
+                emit({
+                  accountId: r.fromAccountId!,
+                  day: d,
+                  kind: 'no_ejecutada',
+                  amountCents: 0,
+                  instrumentId: leg.instrumentId,
+                  ruleId: r.id,
+                  occurrenceKey: key,
+                  source: 'regla',
+                });
+                return;
+              }
+            }
             emit({
               accountId: r.fromAccountId!,
               day: d,

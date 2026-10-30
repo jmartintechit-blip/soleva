@@ -53,6 +53,8 @@
     meta: string;
     amount: number;
     tag: string;
+    // A plan's buy left undone for lack of cash: nothing moved.
+    undone?: boolean;
   };
   const lines = $derived.by((): Line[] => {
     if (!v) return [];
@@ -64,12 +66,18 @@
           : m.source === 'regla' || m.source === 'motor'
             ? 'Automático'
             : '';
-      const group = m.kind === 'compra' && m.ruleId ? `${m.day}|${m.ruleId}` : undefined;
+      const group =
+        (m.kind === 'compra' || m.kind === 'no_ejecutada') && m.ruleId
+          ? `${m.day}|${m.ruleId}|${m.kind}`
+          : undefined;
       const last = out.at(-1);
       if (group && last?.group === group) {
         last.amount += m.amountCents;
         last.count! += 1;
-        last.meta = `${last.count} compras al cierre del día`;
+        last.meta =
+          m.kind === 'compra'
+            ? `${last.count} compras al cierre del día`
+            : `${last.count} compras no ejecutadas · sin efectivo suficiente`;
         continue;
       }
       const gross = m.amountCents + m.withholdingCents;
@@ -79,6 +87,8 @@
             return group
               ? [m.rule ?? 'Plan', '1 compra al cierre del día']
               : [m.instrument ?? 'Compra', 'Compra'];
+          case 'no_ejecutada':
+            return [m.rule ?? 'Plan', '1 compra no ejecutada · sin efectivo suficiente'];
           case 'venta':
             return [m.instrument ?? 'Venta', 'Venta'];
           case 'transferencia':
@@ -122,6 +132,7 @@
         tag,
         group,
         count: 1,
+        undone: m.kind === 'no_ejecutada',
       });
     }
     return out;
@@ -179,7 +190,7 @@
       <section class="hero f1">
         <span class="name phone">{v.account.name}</span>
         <span class="sv-muted small desk">Valor de la cuenta</span>
-        <span class="value">{eur(v.value)}</span>
+        <span class="value" class:sv-neg={v.value < 0}>{eur(v.value)}</span>
         <span class="sv-muted small"
           >Este mes ganó <span class:up={v.monthGain > 0} class:down={v.monthGain < 0}
             >{eur(v.monthGain, true)}</span
@@ -262,10 +273,10 @@
           <span class="num desk">{p.estimate ? '—' : units(p.qtyE8, p.kind)}</span>
           <span class="num desk">{p.estimate ? '—' : price(p.priceE8, p.currency)}</span>
           <span class="pos-right phone-flex">
-            <span class="num">{eur(p.valueCents)}</span>
+            <span class="num" class:sv-neg={p.valueCents < 0}>{eur(p.valueCents)}</span>
             <span class="small up">{eur(p.gainCents, true)}{share(p.gainCents, p.costCents)}</span>
           </span>
-          <span class="num desk">{eur(p.valueCents)}</span>
+          <span class="num desk" class:sv-neg={p.valueCents < 0}>{eur(p.valueCents)}</span>
           <span class="small up desk gain"
             >{eur(p.gainCents, true)}{share(p.gainCents, p.costCents)}</span
           >
@@ -281,7 +292,9 @@
                 >Interés de este mes, sobre el saldo de cada día: {eur(v.accrued)}</span
               >{/if}
           </span>
-          <span class="pos-right"><span class="num">{eur(v.cash)}</span></span>
+          <span class="pos-right"
+            ><span class="num" class:sv-neg={v.cash < 0}>{eur(v.cash)}</span></span
+          >
         </div>
       {/if}
     </section>
@@ -297,9 +310,10 @@
               >{/if}</span
           >
           <span class="pos-right"
-            ><span class="num" class:up={m.amount > 0}>{eur(m.amount, true)}</span>{#if m.tag}<span
-                class="tag">{m.tag}</span
-              >{/if}</span
+            >{#if m.undone}<span class="sv-muted small">No ejecutada</span>{:else}<span
+                class="num"
+                class:up={m.amount > 0}>{eur(m.amount, true)}</span
+              >{/if}{#if m.tag}<span class="tag">{m.tag}</span>{/if}</span
           >
         </div>
       {/each}
