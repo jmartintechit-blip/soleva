@@ -31,3 +31,19 @@ export function toE8(x: string | number): bigint {
   const v = BigInt(int) * E8 + BigInt((frac + '00000000').slice(0, 8));
   return neg ? -v : v;
 }
+
+// "114,7987", "1.250,5" or "0.5" → units ×10^8 (at most 8 decimals); null if it is not a number.
+export function parseUnits(text: string): bigint | null {
+  let s = text.replace(/\s/g, '');
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  const m = /^(\d{1,10})(?:\.(\d{1,8}))?$/.exec(s);
+  if (!m) return null;
+  return BigInt(m[1]!) * E8 + BigInt((m[2] ?? '').padEnd(8, '0'));
+}
+
+// Units ×10^8 the Spanish way, without trailing zeros: 11479870000n → "114,7987".
+export function unitsText(qtyE8: bigint): string {
+  const abs = qtyE8 < 0n ? -qtyE8 : qtyE8;
+  const frac = (abs % E8).toString().padStart(8, '0').replace(/0+$/, '');
+  return `${qtyE8 < 0n ? '−' : ''}${abs / E8}${frac ? `,${frac}` : ''}`;
+}

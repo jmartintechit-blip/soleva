@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays, dayIn, daysAfter, daysBetween, daysInYear, madridToday, weekday } from './day.ts';
-import { E8, divRound, toE8, unitsFor, valueCents } from './units.ts';
+import { E8, divRound, parseUnits, toE8, unitsFor, unitsText, valueCents } from './units.ts';
 
 describe('days', () => {
   it('counts across months, leap years and the change of time', () => {
@@ -50,5 +50,18 @@ describe('units', () => {
     expect(valueCents(q, toE8('3210.99'))).toBeLessThanOrEqual(2500);
     expect(toE8('12.5')).toBe(12n * E8 + E8 / 2n);
     expect(toE8(-0.25)).toBe(-(E8 / 4n));
+  });
+});
+
+describe('units typed by the user', () => {
+  it('reads them the Spanish way, up to 8 decimals, and writes them back', () => {
+    expect(parseUnits('114,7987')).toBe(11_479_870_000n);
+    expect(parseUnits('1.250,5')).toBe(125_050_000_000n);
+    expect(parseUnits('0.91040000')).toBe(91_040_000n);
+    expect(parseUnits('0')).toBe(0n);
+    for (const bad of ['', '-1', '1,123456789', 'abc']) expect(parseUnits(bad)).toBeNull();
+    expect(unitsText(11_479_870_000n)).toBe('114,7987');
+    expect(unitsText(-130_000n)).toBe('−0,0013');
+    expect(unitsText(300_000_000n)).toBe('3');
   });
 });

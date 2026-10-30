@@ -51,4 +51,20 @@ test('Inicio on the ledger: value, what you put in and made, accounts and the ma
     'href',
     `/cuentas/${bank!.id}/cuadre`,
   );
+
+  // Cuadre: the bank really has 9.990 €; the difference is an ajuste of today.
+  await page.getByRole('link', { name: 'Cuadrar' }).click();
+  await expect(page.getByRole('heading', { name: 'Cuadra Banco' })).toBeVisible();
+  const save = page.getByRole('button', { name: /^Guardar cuadre/ });
+  await expect(save).toBeDisabled();
+  await page.getByRole('button', { name: 'Efectivo coincide. Cambiar' }).click();
+  const real = page.getByLabel('Valor real de Efectivo');
+  await expect(real).toHaveValue('10000,50');
+  await real.fill('9.990');
+  await expect(page.getByText('−10,50 €')).toBeVisible();
+  await expect(save).toHaveText('Guardar cuadre · 1 cambio');
+  await save.click();
+  await expect(page.getByRole('heading', { name: 'Banco' })).toBeVisible();
+  await expect(page.getByText('9.990 €').first()).toBeVisible();
+  await expect(page.getByText('Ajustaste el efectivo a lo real')).toBeVisible();
 });
