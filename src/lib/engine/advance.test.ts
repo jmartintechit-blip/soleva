@@ -287,3 +287,22 @@ describe('advance', () => {
     expect(fold(daily).holdings.get(holdingKey('brk', 'world'))!.qtyE8).toBeGreaterThan(0n);
   });
 });
+
+describe('accruedInterest', () => {
+  it('counts what is earned and not paid yet, net, and drops to zero the day it is paid', async () => {
+    const { accruedInterest } = await import('./advance.ts');
+    const t: InterestTerms = {
+      tiers: [{ rateBp: 250 }],
+      baseDays: 365,
+      payFrequency: 'mensual',
+      payDay: 31,
+      withholdingBp: 1900,
+    };
+    const input: EngineInput = { ...none, interest: { brk: t } };
+    const ledger = [opening('brk', 1_000_000)];
+    // 15 days of 0,68493 € are 10,27 € gross: 8,32 € after 19 %.
+    expect(accruedInterest(input, ledger, '2026-11-15')).toEqual({ brk: 832 });
+    const paid = [...ledger, ...advance(input, ledger, '2026-10-31', '2026-11-30')];
+    expect(accruedInterest(input, paid, '2026-11-30')).toEqual({ brk: 0 });
+  });
+});

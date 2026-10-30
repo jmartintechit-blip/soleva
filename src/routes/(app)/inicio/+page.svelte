@@ -59,8 +59,11 @@
   const chart = $derived.by(() => {
     const series = p?.series.length ? p.series : [0];
     const pts = series.length > 1 ? series : [series[0]!, series[0]!];
-    const min = Math.min(...pts);
-    const span = Math.max(...pts) - min || 1;
+    // At least ±1 % of the value on the axis: a move of 0,05 % should look small.
+    const lo = Math.min(...pts);
+    const hi = Math.max(...pts);
+    const span = Math.max(hi - lo, Math.abs((hi + lo) / 2) * 0.02, 1);
+    const min = (hi + lo) / 2 - span / 2;
     const x = (k: number) => 4 + (k * (width - 14)) / (pts.length - 1);
     const y = (v: number) => H - 8 - ((v - min) / span) * (H - 22);
     const line = pts.map((v, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)} ${y(v).toFixed(1)}`);
@@ -124,147 +127,151 @@
       {/each}
     </div>
 
-    <section class="hero f1">
-      <span class="sv-muted kicker">Tu patrimonio</span>
-      <span class="value" aria-live="polite"
-        >{formatEuros(Math.round(shown.value) === p.value ? p.value : shown.value, {
-          withCents: true,
-        })}</span
-      >
-      <span class="sv-muted meta"
-        ><span class:up={p.change > 0} class:down={p.change < 0}>{eur(p.change, true)}</span>
-        {LONG[key]}</span
-      >
-    </section>
-
-    <section class="chart f2" bind:clientWidth={width}>
-      <svg
-        viewBox="0 0 {width} {H}"
-        {width}
-        height={H}
-        role="img"
-        aria-label="Evolución de tu patrimonio {LONG[key]}: de {eur(p.series[0] ?? 0)} a {eur(
-          p.value,
-        )}."
-      >
-        <defs>
-          <linearGradient id="home-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="var(--accent)" stop-opacity=".22" />
-            <stop offset="1" stop-color="var(--accent)" stop-opacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={chart.area} fill="url(#home-area)" />
-        {#key key}
-          <path
-            class="sv-draw"
-            pathLength="1"
-            d={chart.line}
-            fill="none"
-            stroke="var(--accent)"
-            stroke-width="2.25"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        {/key}
-        <circle class="sv-halo" cx={chart.end.x} cy={chart.end.y} r="10" fill="var(--accent)" />
-        <circle cx={chart.end.x} cy={chart.end.y} r="4" fill="var(--accent)" />
-      </svg>
-      <div class="axis">
-        <span>{key === 'dia' ? 'Ayer' : key === 'todo' ? 'Inicio' : short(p.start)}</span><span
-          >Hoy</span
+    <!-- Phone: one column in reading order (display: contents). Desktop: two independent
+    columns, so neither leaves a gap next to the other. -->
+    <div class="main">
+      <section class="hero f1">
+        <span class="sv-muted kicker">Tu patrimonio</span>
+        <span class="value" aria-live="polite"
+          >{formatEuros(Math.round(shown.value) === p.value ? p.value : shown.value, {
+            withCents: true,
+          })}</span
         >
-      </div>
-    </section>
-
-    <section class="made f3">
-      <div class="line">
-        <span class="sv-muted">Lo que aportaste</span><span class="num">{eur(p.put, true)}</span>
-      </div>
-      <div class="line">
-        <span class="sv-muted">Lo que ganó tu dinero</span><span class="num accent"
-          >{eur(p.made, true)}{pct(p.rate) ? ` · ${pct(p.rate)}` : ''}</span
+        <span class="sv-muted meta"
+          ><span class:up={p.change > 0} class:down={p.change < 0}>{eur(p.change, true)}</span>
+          {LONG[key]}</span
         >
-      </div>
-      <span class="note"
-        >Rentabilidad ponderada por tu dinero. Las transferencias entre tus cuentas no cuentan como
-        ganancia.</span
-      >
-    </section>
-
-    {#if top}
-      {@const t = describe(top, data.today)}
-      <a class="alert f3" href="/alertas">
-        <span class="breathe" aria-hidden="true"></span>
-        <span class="alert-text"
-          ><span class="alert-title">{t.title}</span><span class="sv-muted small"
-            >{t.where}{data.alerts.length > 1
-              ? ` · y ${data.alerts.length - 1} ${data.alerts.length === 2 ? 'alerta' : 'alertas'} más`
-              : ''}</span
-          ></span
-        >
+      </section>
+      <section class="chart f2" bind:clientWidth={width}>
         <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg
-        >
-      </a>
-    {/if}
-
-    <section class="accounts f4" aria-labelledby="cuentas">
-      <div class="head">
-        <h2 id="cuentas" class="sv-label">Cuentas</h2>
-        <span class="small subtle">Ganado · {PERIODS.find((o) => o.key === key)!.short}</span>
-      </div>
-      {#each accounts as a (a.id)}
-        <a class="sv-row" href="/cuentas/{a.id}">
-          <span class="sv-row__main">
-            <span class="sv-row__title">{a.name}</span>
-            <span class="sv-row__meta"
-              >{KIND_LABEL[a.kind as keyof typeof KIND_LABEL] ?? a.kind}</span
-            >
-          </span>
-          <span class="right">
-            <span class="sv-row__value">{eur(a.value)}</span>
-            <span class="small" class:up={a.made > 0} class:down={a.made < 0}
-              >{eur(a.made, true)}</span
-            >
-          </span>
-        </a>
-      {/each}
-    </section>
-
-    {#if split.length}
-      <section class="split f5" aria-labelledby="reparto">
-        <h2 id="reparto" class="sv-label">Reparto</h2>
-        <div
-          class="bar"
+          viewBox="0 0 {width} {H}"
+          {width}
+          height={H}
           role="img"
-          aria-label="Reparto: {split
-            .map((s) => `${s.label.toLowerCase()} ${pct(s.share).replace('+', '')}`)
-            .join(', ')}"
+          aria-label="Evolución de tu patrimonio {LONG[key]}: de {eur(p.series[0] ?? 0)} a {eur(
+            p.value,
+          )}."
         >
-          {#each split as s (s.label)}
-            <span style:flex-grow={s.share} style:opacity={s.shade}></span>
-          {/each}
-        </div>
-        <div class="legend">
-          {#each split as s (s.label)}
-            <span class="item"
-              ><span class="swatch" style:opacity={s.shade}></span><span class="grow"
-                >{s.label}</span
-              ><span class="num desk">{eur(s.value)}</span><span class="num"
-                >{pct(s.share).replace('+', '')}</span
-              ></span
-            >
-          {/each}
+          <defs>
+            <linearGradient id="home-area" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--accent)" stop-opacity=".22" />
+              <stop offset="1" stop-color="var(--accent)" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={chart.area} fill="url(#home-area)" />
+          {#key key}
+            <path
+              class="sv-draw"
+              pathLength="1"
+              d={chart.line}
+              fill="none"
+              stroke="var(--accent)"
+              stroke-width="2.25"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          {/key}
+          <circle class="sv-halo" cx={chart.end.x} cy={chart.end.y} r="10" fill="var(--accent)" />
+          <circle cx={chart.end.x} cy={chart.end.y} r="4" fill="var(--accent)" />
+        </svg>
+        <div class="axis">
+          <span>{key === 'dia' ? 'Ayer' : key === 'todo' ? 'Inicio' : short(p.start)}</span><span
+            >Hoy</span
+          >
         </div>
       </section>
-    {/if}
+      <section class="accounts f4" aria-labelledby="cuentas">
+        <div class="head">
+          <h2 id="cuentas" class="sv-label">Cuentas</h2>
+          <span class="small subtle">Ganado · {PERIODS.find((o) => o.key === key)!.short}</span>
+        </div>
+        {#each accounts as a (a.id)}
+          <a class="sv-row" href="/cuentas/{a.id}">
+            <span class="sv-row__main">
+              <span class="sv-row__title">{a.name}</span>
+              <span class="sv-row__meta"
+                >{KIND_LABEL[a.kind as keyof typeof KIND_LABEL] ?? a.kind}{a.accrued
+                  ? ' · con intereses acumulados'
+                  : ''}</span
+              >
+            </span>
+            <span class="right">
+              <span class="sv-row__value">{eur(a.value)}</span>
+              <span class="small" class:up={a.made > 0} class:down={a.made < 0}
+                >{eur(a.made, true)}</span
+              >
+            </span>
+          </a>
+        {/each}
+      </section>
+    </div>
+
+    <div class="side">
+      <section class="made f3">
+        <div class="line">
+          <span class="sv-muted">Lo que aportaste</span><span class="num">{eur(p.put, true)}</span>
+        </div>
+        <div class="line">
+          <span class="sv-muted">Lo que ganó tu dinero</span><span class="num accent"
+            >{eur(p.made, true)}{pct(p.rate) ? ` · ${pct(p.rate)}` : ''}</span
+          >
+        </div>
+        <span class="note"
+          >Rentabilidad ponderada por tu dinero. Las transferencias entre tus cuentas no cuentan
+          como ganancia.</span
+        >
+      </section>
+      {#if top}
+        {@const t = describe(top, data.today)}
+        <a class="alert f3" href="/alertas">
+          <span class="breathe" aria-hidden="true"></span>
+          <span class="alert-text"
+            ><span class="alert-title">{t.title}</span><span class="sv-muted small"
+              >{t.where}{data.alerts.length > 1
+                ? ` · y ${data.alerts.length - 1} ${data.alerts.length === 2 ? 'alerta' : 'alertas'} más`
+                : ''}</span
+            ></span
+          >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg
+          >
+        </a>
+      {/if}
+      {#if split.length}
+        <section class="split f5" aria-labelledby="reparto">
+          <h2 id="reparto" class="sv-label">Reparto</h2>
+          <div
+            class="bar"
+            role="img"
+            aria-label="Reparto: {split
+              .map((s) => `${s.label.toLowerCase()} ${pct(s.share).replace('+', '')}`)
+              .join(', ')}"
+          >
+            {#each split as s (s.label)}
+              <span style:flex-grow={s.share} style:opacity={s.shade}></span>
+            {/each}
+          </div>
+          <div class="legend">
+            {#each split as s (s.label)}
+              <span class="item"
+                ><span class="swatch" style:opacity={s.shade}></span><span class="grow"
+                  >{s.label}</span
+                ><span class="num desk">{eur(s.value)}</span><span class="num"
+                  >{pct(s.share).replace('+', '')}</span
+                ></span
+              >
+            {/each}
+          </div>
+        </section>
+      {/if}
+    </div>
 
     <p class="sv-legal legal">Precios de cierre del día · Estimación, no asesoramiento</p>
   </div>
@@ -277,13 +284,39 @@
     margin: 0;
   }
   .home {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'top' 'hero' 'chips' 'chart' 'made' 'alert' 'accounts' 'split' 'legal';
+    display: flex;
+    flex-direction: column;
     gap: var(--space-5);
   }
+  .main,
+  .side {
+    display: contents;
+  }
   .top {
-    grid-area: top;
+    order: 0;
+  }
+  .hero {
+    order: 1;
+  }
+  .chips {
+    order: 2;
+  }
+  .chart {
+    order: 3;
+  }
+  .made {
+    order: 4;
+  }
+  .alert {
+    order: 5;
+  }
+  .accounts {
+    order: 6;
+  }
+  .split {
+    order: 7;
+  }
+  .top {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -325,7 +358,6 @@
     box-shadow: 0 0 0 2px var(--bg);
   }
   .chips {
-    grid-area: chips;
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
@@ -356,7 +388,6 @@
     outline-offset: 2px;
   }
   .hero {
-    grid-area: hero;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -383,9 +414,6 @@
     color: var(--negative);
     font-weight: 600;
   }
-  .chart {
-    grid-area: chart;
-  }
   .chart svg {
     display: block;
   }
@@ -398,7 +426,6 @@
     color: var(--ink-subtle);
   }
   .made {
-    grid-area: made;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -426,7 +453,6 @@
     font-size: 12px;
   }
   .alert {
-    grid-area: alert;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -456,7 +482,6 @@
     font-weight: 500;
   }
   .accounts {
-    grid-area: accounts;
     display: flex;
     flex-direction: column;
   }
@@ -476,8 +501,10 @@
     align-items: flex-end;
     gap: 1px;
   }
+  .right > span {
+    white-space: nowrap;
+  }
   .split {
-    grid-area: split;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -523,19 +550,41 @@
     display: none;
   }
   .legal {
-    grid-area: legal;
+    order: 8;
+    color: var(--ink-subtle);
   }
   @media (min-width: 1024px) {
     .home {
+      display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
       grid-template-areas:
         'top chips'
-        'hero made'
-        'chart alert'
-        'accounts split'
+        'main side'
         'legal legal';
       column-gap: var(--space-8);
+      row-gap: var(--space-5);
       align-items: start;
+    }
+    .top {
+      grid-area: top;
+    }
+    .chips {
+      grid-area: chips;
+    }
+    .legal {
+      grid-area: legal;
+    }
+    .main,
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+    }
+    .main {
+      grid-area: main;
+    }
+    .side {
+      grid-area: side;
     }
     .logo,
     .icons {

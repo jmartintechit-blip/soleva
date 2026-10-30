@@ -138,7 +138,8 @@
     overflow: clip;
     flex: 1 1 auto;
     min-width: 0;
-    padding: var(--space-5) var(--space-5) 96px;
+    /* The bottom bar (48 px items + 12 px padding + its line) and the phone's home indicator. */
+    padding: var(--space-5) var(--space-5) calc(96px + env(safe-area-inset-bottom));
   }
   /* As in escritorio-proyeccion: content up to 1160 px, centred in what the sidebar leaves. */
   .content {

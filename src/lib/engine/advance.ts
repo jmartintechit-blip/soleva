@@ -228,6 +228,17 @@ const perEur = (market: Market, instrumentId: string, d: Day) => {
   return c === 'EUR' ? E8 : market.perEur(c, d);
 };
 
+// Interest earned and not paid yet at the end of `day`, net of what will be withheld: part of the
+// account's value (and of what it made), so paying it changes nothing but where it sits.
+export function accruedInterest(input: EngineInput, ledger: readonly Movement[], day: Day) {
+  return Object.fromEntries(
+    Object.entries(interestSince(input, [...ledger], day)).map(([id, micro]) => [
+      id,
+      payment(micro, input.interest[id]!).net,
+    ]),
+  );
+}
+
 // Interest accrued and not yet paid when a run starts: replayed from the last pay day (at most a
 // year back) on the ledger's own closing balances, so no state has to be stored for it.
 function interestSince(input: EngineInput, ledger: Movement[], from: Day) {

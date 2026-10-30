@@ -9,8 +9,8 @@ export interface DayRow {
   day: Day;
   total: number;
   flows: number;
-  // account → [value, own flows]
-  accounts: Record<string, [number, number]>;
+  // account → [value, own flows, interest earned and not paid yet (in the value)]
+  accounts: Record<string, [number, number, number?]>;
 }
 
 export { PERIODS, type PeriodKey };
@@ -96,7 +96,7 @@ export async function loadHome(db: Db, userId: string) {
     [userId],
   );
   const data = JSON.parse(j) as {
-    days: [Day, number, number, Record<string, [number, number]>][];
+    days: [Day, number, number, DayRow['accounts']][];
     classes: Record<string, number> | null;
     accounts: { id: string; name: string; kind: string }[];
     alerts: StoredAlert[];

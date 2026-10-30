@@ -22,7 +22,11 @@ export const load: PageServerLoad = async (event) => {
       ledger: true as const,
       today: day,
       periods: Object.fromEntries(PERIODS.map((p) => [p.key, period(home.rows, p.key, day)])),
-      accounts: home.accounts.map((a) => ({ ...a, value: last?.accounts[a.id]?.[0] ?? 0 })),
+      accounts: home.accounts.map((a) => ({
+        ...a,
+        value: last?.accounts[a.id]?.[0] ?? 0,
+        accrued: last?.accounts[a.id]?.[2] ?? 0,
+      })),
       classes: home.classes,
       alerts: home.alerts,
     };

@@ -13,24 +13,24 @@
   <title>Alertas · Soleva</title>
 </svelte:head>
 
-<header class="top">
-  <a class="back" href="/inicio" aria-label="Volver a Inicio">
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.8"
-      stroke-linecap="round"
-      aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg
-    >
-  </a>
-  <span class="sv-label">Alertas</span>
-  <span class="spacer"></span>
-</header>
-
 <div class="page">
+  <!-- In the content column, so its label is centred over what it names. -->
+  <header class="top">
+    <a class="back" href="/inicio" aria-label="Volver a Inicio">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg
+      >
+    </a>
+    <span class="sv-label">Alertas</span>
+    <span class="spacer"></span>
+  </header>
   <section class="f1 stack">
     <h1 class="title">
       {shown.length === 0
@@ -79,7 +79,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--space-5);
   }
   .back,
   .spacer {

@@ -1,4 +1,10 @@
-import { type AutoRule, type EngineInput, type Market, advance } from '#lib/engine/advance.ts';
+import {
+  type AutoRule,
+  type EngineInput,
+  type Market,
+  accruedInterest,
+  advance,
+} from '#lib/engine/advance.ts';
 import { type Day, addDays, daysAfter, monthOf } from '#lib/engine/day.ts';
 import type { DebtTerms } from '#lib/engine/debt.ts';
 import {
@@ -474,10 +480,18 @@ export async function runUser(db: Db, userId: string, today: Day) {
     const months: [string, string, number, number][] = [];
     for (const d of new Set([...daysAfter(from, today), today])) {
       const v = valuation(holdings, all, d);
+      // Interest earned this period and not paid yet counts in the account's value.
+      const accrued = accruedInterest(input, all, d);
+      for (const [a, cents] of Object.entries(accrued)) {
+        if (!(a in v.byAccount)) continue;
+        v.byAccount[a]! += cents;
+        v.total += cents;
+        v.byClass.liquidez += cents;
+      }
       const flows = outsideFlows(all, addDays(d, -1), d).reduce((s, m) => s + m.amountCents, 0);
       const own = accountFlows(all, addDays(d, -1), d);
       const perAccount = Object.fromEntries(
-        Object.entries(v.byAccount).map(([a, value]) => [a, [value, own[a] ?? 0]]),
+        Object.entries(v.byAccount).map(([a, value]) => [a, [value, own[a] ?? 0, accrued[a] ?? 0]]),
       );
       days.push([d, v.total, flows, JSON.stringify(perAccount), JSON.stringify(v.byClass)]);
       if (monthOf(addDays(d, 1)) !== monthOf(d))
