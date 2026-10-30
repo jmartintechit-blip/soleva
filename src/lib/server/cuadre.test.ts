@@ -70,5 +70,4 @@ describe('cuadre', () => {
     );
     expect(await saveCuadre(db, 'ana', brk, '2026-10-30', { units: { [other!]: 1n } })).toBe(0);
   });
-
 });

@@ -22,12 +22,12 @@ export async function loadCuadre(db: Db, userId: string, accountId: string) {
     `select case when not ${CAN_EDIT} then null else json_build_object(
        'account', (select json_build_object('id', id, 'name', name, 'kind', kind)
                    from money_account where id = $2),
-       'rows', (select coalesce(json_agg(r order by r.cash desc, r.name), '[]') from (
-           select true as cash, null as "instrumentId", 'Efectivo' as name, 'efectivo' as kind,
+       'rows', (select coalesce(json_agg(r order by r."instrumentId" is not null, r.name), '[]') from (
+           select null as "instrumentId", 'Efectivo' as name, 'efectivo' as kind,
                   coalesce(sum(amount_cents), 0)::text as expected
              from movement where account_id = $2 and voided_at is null
            union all
-           select false, i.id, i.name, i.kind, sum(m.qty_e8)::text
+           select i.id, i.name, i.kind, sum(m.qty_e8)::text
              from movement m join instrument i on i.id = m.instrument_id
             where m.account_id = $2 and m.voided_at is null and m.qty_e8 is not null
             group by i.id having sum(m.qty_e8) <> 0) r)
@@ -35,11 +35,10 @@ export async function loadCuadre(db: Db, userId: string, accountId: string) {
     [userId, accountId],
   );
   if (!j) return null;
-  const d = JSON.parse(j) as {
+  return JSON.parse(j) as {
     account: { id: string; name: string; kind: string };
-    rows: (CuadreRow & { cash?: boolean })[];
+    rows: CuadreRow[];
   };
-  return { account: d.account, rows: d.rows.map(({ cash: _, ...r }) => r) };
 }
 
 // Moves the ledger to what is real: one 'ajuste' per difference, worked out here from the
