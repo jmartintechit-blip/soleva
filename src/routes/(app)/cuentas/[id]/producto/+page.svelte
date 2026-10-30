@@ -5,14 +5,14 @@
   import { parseUnits, valueCents } from '#lib/engine/units.ts';
   import type { PageProps } from './$types';
 
-  // b11/NProducto: a sheet over the account. Results in the provider's order of match, never
-  // ranked or suggested by us (CNMV).
+  // b11/NProducto: a sheet over the account. One row per product (its listings together, the euro
+  // one chosen first), in the provider's order of match, never ranked or suggested by us (CNMV).
   let { data, form }: PageProps = $props();
 
   const eur = (cents: number, sign = false) =>
     `${sign && cents > 0 ? '+' : ''}${formatEuros(cents, { withCents: true })}`;
-  const href = (symbol: string) =>
-    `?q=${encodeURIComponent(data.q)}${symbol === data.chosenSymbol ? '' : `&elegido=${encodeURIComponent(symbol)}`}`;
+  const href = (symbol: string | null) =>
+    `?q=${encodeURIComponent(data.q)}${symbol ? `&elegido=${encodeURIComponent(symbol)}` : ''}`;
 
   let units = $state(untrack(() => form?.values?.units ?? ''));
   let avg = $state(untrack(() => form?.values?.avg ?? ''));
@@ -85,14 +85,20 @@
     {:else if data.q && data.results.length === 0}
       <p class="sv-muted small">No encontramos «{data.q}». Prueba con el ISIN o el ticker.</p>
     {/if}
-    {#each data.results ?? [] as r (r.symbol)}
-      {@const on = r.symbol === data.chosenSymbol}
+    {#each data.results ?? [] as r (r.name)}
+      {@const listing = r.listings.find((l) => l.symbol === data.chosenSymbol)}
+      {@const on = !!listing}
+      {@const shown = listing ?? r.listings[0]!}
       <div class="result">
-        <a class="pick" href={href(r.symbol)} aria-current={on ? 'true' : undefined}>
+        <a
+          class="pick"
+          href={href(on ? null : shown.symbol)}
+          aria-current={on ? 'true' : undefined}
+        >
           <span class="radio" class:on></span>
           <span class="what"
             ><span class="name">{r.name}</span><span class="meta"
-              >{r.symbol}{r.exchange ? ` · ${r.exchange}` : ''}{on && data.chosen
+              >{r.isin ?? shown.symbol} · {shown.market}{on && data.chosen
                 ? ` · ${data.chosen.currency}`
                 : ''}</span
             ></span
@@ -101,10 +107,22 @@
             <span class="price">{eur(Math.round(Number(data.chosen.priceEurE8) / 1e6))}</span>
           {/if}
         </a>
+        {#if on && r.listings.length > 1}
+          <p class="markets small">
+            Bolsa:
+            {#each r.listings as l (l.symbol)}
+              {#if l.symbol === shown.symbol}
+                <span class="ink" aria-current="true">{l.market}</span>
+              {:else}
+                <a href={href(l.symbol)}>{l.market}</a>
+              {/if}
+            {/each}
+          </p>
+        {/if}
         {#if on}
           {#if data.chosen}
             <form method="POST" use:enhance class="fields" id="add">
-              <input type="hidden" name="symbol" value={r.symbol} />
+              <input type="hidden" name="symbol" value={shown.symbol} />
               <label
                 >Participaciones<input
                   name="units"
@@ -327,6 +345,16 @@
     color: var(--ink-muted);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+  }
+  .markets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin: -4px 0 12px 30px;
+    color: var(--ink-muted);
+  }
+  .markets a {
+    color: var(--ink-muted);
   }
   .fields {
     display: grid;

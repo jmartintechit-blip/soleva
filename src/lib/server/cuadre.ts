@@ -1,4 +1,5 @@
 import type { Day } from '#lib/engine/day.ts';
+import { UNIT_STEP } from '#lib/engine/units.ts';
 import type { Db } from './db/index.ts';
 
 // Cuadre (b11/NCuadre): what the ledger says the account holds against what the user sees in
@@ -41,7 +42,7 @@ export async function loadCuadre(db: Db, userId: string, accountId: string) {
   };
 }
 
-// Moves the ledger to what is real: one 'ajuste' per difference, worked out here from the
+// Moves the ledger to what is real (units to the 6 decimals people see): one 'ajuste' per difference, worked out here from the
 // movements (never from what the page sent as expected). Products only among those the account
 // holds or held. Returns how many were saved, or null without access.
 export async function saveCuadre(
@@ -73,9 +74,9 @@ export async function saveCuadre(
            select $1, $2, 999, 'ajuste', 0, $3, $4::bigint - sum(qty_e8), 'cuadre'
              from movement where account_id = $1 and instrument_id = $3 and voided_at is null
               and qty_e8 is not null
-           having count(*) > 0 and $4::bigint <> sum(qty_e8)
+           having count(*) > 0 and abs($4::bigint - sum(qty_e8)) >= $5
            returning 1`,
-          [accountId, day, instrumentId, qty.toString()],
+          [accountId, day, instrumentId, qty.toString(), UNIT_STEP.toString()],
         )
       ).length;
     return saved;

@@ -63,5 +63,9 @@ describe('units typed by the user', () => {
     expect(unitsText(11_479_870_000n)).toBe('114,7987');
     expect(unitsText(-130_000n)).toBe('−0,0013');
     expect(unitsText(300_000_000n)).toBe('3');
+    // At most 6 decimals, rounded.
+    expect(unitsText(25_431_234n)).toBe('0,254312');
+    expect(unitsText(1_127_895_615n)).toBe('11,278956');
+    expect(unitsText(-49n)).toBe('0');
   });
 });

@@ -2,7 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { parseUnits } from '#lib/engine/units.ts';
 import { loadAccountView } from '#lib/server/account-view.ts';
 import { runUser } from '#lib/server/engine-run.ts';
-import { searchInstruments } from '#lib/server/market/search.ts';
+import { searchProducts } from '#lib/server/market/search.ts';
 import { today } from '#lib/server/plan.ts';
 import { addProduct, quote } from '#lib/server/product.ts';
 import { requireUserId } from '#lib/server/session.ts';
@@ -20,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
   if (!view) error(404, 'No encontrada');
   const q = (event.url.searchParams.get('q') ?? '').trim().slice(0, 60);
   const chosen = event.url.searchParams.get('elegido')?.slice(0, 30) ?? '';
-  const results = q ? await searchInstruments(q).catch(() => null) : [];
+  const results = q ? await searchProducts(q).catch(() => null) : [];
   return {
     account: { id: view.account.id, name: view.account.name, value: view.value },
     q,

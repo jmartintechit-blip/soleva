@@ -3,6 +3,8 @@ import { type Fetch, fetchRetry } from './provider.ts';
 export interface Candidate {
   symbol: string;
   exchange: string;
+  // The exchange as people know it: XETRA, Amsterdam, London…
+  market: string;
   name: string;
   kind: 'etf' | 'fondo' | 'accion' | 'etc' | 'cripto';
 }
@@ -27,6 +29,7 @@ export async function searchInstruments(q: string, f: Fetch = fetch): Promise<Ca
     quotes?: {
       symbol?: string;
       exchange?: string;
+      exchDisp?: string;
       quoteType?: string;
       longname?: string;
       shortname?: string;
@@ -36,7 +39,102 @@ export async function searchInstruments(q: string, f: Fetch = fetch): Promise<Ca
     const name = x.longname ?? x.shortname ?? '';
     const kind = /\bETC\b/.test(name) ? 'etc' : KIND[x.quoteType ?? ''];
     return x.symbol && kind && name
-      ? [{ symbol: x.symbol, exchange: x.exchange ?? '', name, kind }]
+      ? [
+          {
+            symbol: x.symbol,
+            exchange: x.exchange ?? '',
+            market: x.exchDisp ?? x.exchange ?? '',
+            name,
+            kind,
+          },
+        ]
       : [];
   });
+}
+
+// One product, however many exchanges list it: its listings, the euro one first.
+export interface Product {
+  name: string;
+  kind: Candidate['kind'];
+  isin: string | null;
+  listings: Candidate[];
+}
+
+export const ISIN = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/;
+// Yahoo's codes for exchanges that trade in euros; Xetra and Amsterdam first, as most Spanish
+// brokers do.
+const EURO = [
+  'GER',
+  'AMS',
+  'PAR',
+  'MIL',
+  'MCE',
+  'BRU',
+  'LIS',
+  'VIE',
+  'HEL',
+  'ISE',
+  'FRA',
+  'STU',
+  'MUN',
+  'BER',
+  'DUS',
+  'HAM',
+];
+const rank = (c: Candidate) => {
+  const i = EURO.indexOf(c.exchange);
+  return i < 0 ? EURO.length : i;
+};
+
+// The ISIN of a product by its exact name, from ESMA's register of instruments (FIRDS), official
+// and free; null when the name does not lead to exactly one, or the register does not answer.
+export async function isinOf(name: string, f: Fetch = fetch): Promise<string | null> {
+  try {
+    const q = encodeURIComponent(`gnr_full_name:"${name.replace(/["\\]/g, ' ')}"`);
+    const res = await f(
+      `https://registers.esma.europa.eu/solr/esma_registers_firds/select?q=${q}&fq=type_s:parent&fl=isin,gnr_full_name&rows=100&wt=json`,
+      { signal: AbortSignal.timeout(5000) },
+    );
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      response?: { docs?: { isin?: string; gnr_full_name?: string }[] };
+    };
+    const found = new Set(
+      (body.response?.docs ?? [])
+        .filter((d) => d.gnr_full_name?.toLowerCase() === name.toLowerCase())
+        .map((d) => d.isin)
+        .filter((i): i is string => !!i && ISIN.test(i)),
+    );
+    return found.size === 1 ? [...found][0]! : null;
+  } catch {
+    return null;
+  }
+}
+
+// The search, one row per product (same name = same product on another exchange), in the
+// provider's order. An ISIN typed by the user is that product's ISIN.
+export async function searchProducts(q: string, f: Fetch = fetch): Promise<Product[]> {
+  const text = q.trim().toUpperCase();
+  let found = await searchInstruments(q, f);
+  if (ISIN.test(text) && found[0]) {
+    // Searching an ISIN finds one listing: its name finds the others.
+    const name = found[0].name;
+    found = [...found, ...(await searchInstruments(name, f))].filter((c) => c.name === name);
+  }
+  const groups = new Map<string, Product>();
+  for (const c of found) {
+    const key = c.name.toLowerCase();
+    const g = groups.get(key) ?? { name: c.name, kind: c.kind, isin: null, listings: [] };
+    if (!g.listings.some((l) => l.symbol === c.symbol)) g.listings.push(c);
+    groups.set(key, g);
+  }
+  const products = [...groups.values()];
+  for (const p of products) p.listings.sort((a, b) => rank(a) - rank(b));
+  await Promise.all(
+    products.map(async (p) => {
+      if (ISIN.test(text)) p.isin = text;
+      else if (p.kind !== 'cripto') p.isin = await isinOf(p.name, f);
+    }),
+  );
+  return products;
 }

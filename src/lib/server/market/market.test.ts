@@ -163,3 +163,56 @@ describe('searchInstruments', () => {
     expect(await searchInstruments('a', f)).toEqual([]);
   });
 });
+
+describe('searchProducts', () => {
+  const listing = (symbol: string, exchange: string, exchDisp: string, longname: string) => ({
+    symbol,
+    exchange,
+    exchDisp,
+    quoteType: 'ETF',
+    longname,
+  });
+  const WORLD = 'iShares Core MSCI World UCITS ETF USD (Acc)';
+  const f = async (url: string | URL | Request) => {
+    const u = decodeURIComponent(String(url));
+    if (u.includes('registers.esma'))
+      return Response.json({
+        response: {
+          docs: [
+            { isin: 'IE00B4L5Y983', gnr_full_name: WORLD },
+            { isin: 'IE00B4L5Y983', gnr_full_name: WORLD },
+            { isin: 'IE000OTHER01', gnr_full_name: `${WORLD} EUR Hedged` },
+          ],
+        },
+      });
+    if (u.includes('q=IE00B4L5Y983'))
+      return Response.json({ quotes: [listing('IWDA.L', 'LSE', 'London', WORLD)] });
+    return Response.json({
+      quotes: [
+        listing('IWDA.L', 'LSE', 'London', WORLD),
+        listing('URTH', 'PCX', 'NYSEArca', 'iShares MSCI World ETF'),
+        listing('IWDA.AS', 'AMS', 'Amsterdam', WORLD),
+        listing('EUNL.DE', 'GER', 'XETRA', WORLD),
+      ],
+    });
+  };
+
+  it('shows each product once, with its ISIN and the euro listing first', async () => {
+    const { searchProducts } = await import('./search.ts');
+    const found = await searchProducts('msci world', f);
+    expect(found.map((p) => [p.name, p.isin, p.listings.map((l) => l.symbol)])).toEqual([
+      [WORLD, 'IE00B4L5Y983', ['EUNL.DE', 'IWDA.AS', 'IWDA.L']],
+      ['iShares MSCI World ETF', null, ['URTH']],
+    ]);
+  });
+
+  it('finds the other listings of a typed ISIN, and an ISIN no name leads to is not shown', async () => {
+    const { isinOf, searchProducts } = await import('./search.ts');
+    const found = await searchProducts(' ie00b4l5y983 ', f);
+    expect(found.map((p) => [p.isin, p.listings.map((l) => l.market)])).toEqual([
+      ['IE00B4L5Y983', ['XETRA', 'Amsterdam', 'London']],
+    ]);
+    expect(await isinOf('Nothing like it', f)).toBeNull();
+    expect(await isinOf(WORLD, async () => new Response('', { status: 500 }))).toBeNull();
+  });
+});

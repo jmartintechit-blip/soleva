@@ -24,31 +24,38 @@ afterEach(() => db.close());
 
 // The provider: a search that finds both listings, and 28 October's close.
 const provider = (currency: string) => async (url: string | URL | Request) =>
-  String(url).includes('/search')
+  String(url).includes('registers.esma')
     ? Response.json({
-        quotes: [
-          { symbol: 'IWDA.AS', exchange: 'AMS', quoteType: 'ETF', longname: 'iShares World' },
-          { symbol: 'TTWO', exchange: 'NAS', quoteType: 'EQUITY', longname: 'Take-Two' },
-        ],
+        response: { docs: [{ isin: 'IE00B4L5Y983', gnr_full_name: 'iShares World' }] },
       })
-    : Response.json({
-        chart: {
-          result: [
-            {
-              meta: { currency, exchangeTimezoneName: 'Europe/Amsterdam' },
-              timestamp: [1793145600],
-              indicators: { quote: [{ close: [111.08] }] },
-            },
+    : String(url).includes('/search')
+      ? Response.json({
+          quotes: [
+            { symbol: 'IWDA.AS', exchange: 'AMS', quoteType: 'ETF', longname: 'iShares World' },
+            { symbol: 'EUNL.DE', exchange: 'GER', quoteType: 'ETF', longname: 'iShares World' },
+            { symbol: 'TTWO', exchange: 'NAS', quoteType: 'EQUITY', longname: 'Take-Two' },
           ],
-        },
-      });
+        })
+      : Response.json({
+          chart: {
+            result: [
+              {
+                meta: { currency, exchangeTimezoneName: 'Europe/Amsterdam' },
+                timestamp: [1793145600],
+                indicators: { quote: [{ close: [111.08] }] },
+              },
+            ],
+          },
+        });
 
 describe('añadir producto', () => {
   it('prices a result in euros, at the ECB rate when it is listed in another currency', async () => {
     expect((await quote(db, 'IWDA.AS', '2026-10-30', provider('EUR')))?.quote).toEqual({
       symbol: 'IWDA.AS',
       exchange: 'AMS',
+      market: 'AMS',
       name: 'iShares World',
+      isin: 'IE00B4L5Y983',
       kind: 'etf',
       currency: 'EUR',
       priceEurE8: toE8('111.08').toString(),
@@ -79,6 +86,26 @@ describe('añadir producto', () => {
     expect(
       await db.query(`select name, currency, source_id from instrument where id = $1`, [id]),
     ).toEqual([{ name: 'iShares World', currency: 'EUR', source_id: 'IWDA.AS' }]);
+    // The same product again, from Xetra: it adds to that position, no second one.
+    expect(
+      await addProduct(
+        db,
+        'ana',
+        brk,
+        '2026-10-30',
+        { symbol: 'EUNL.DE', qtyE8: toE8('5.2'), avgEurE8: toE8('120') },
+        provider('EUR'),
+      ),
+    ).toBe(id);
+    expect(
+      await db.query(`select source_id, isin from instrument where source_id = 'EUNL.DE'`),
+    ).toEqual([]);
+    expect(await db.query(`select isin from instrument where id = $1`, [id])).toEqual([
+      { isin: 'IE00B4L5Y983' },
+    ]);
+    expect(
+      await db.query(`select sum(qty_e8)::text as q from movement where instrument_id = $1`, [id]),
+    ).toEqual([{ q: '12000000000' }]);
     expect(await db.query(`select day::text as d from price`)).toEqual([{ d: '2026-10-28' }]);
     // Again, by someone else's account, or without a price: nothing.
     const input = { symbol: 'IWDA.AS', qtyE8: 1n, avgEurE8: 1n };

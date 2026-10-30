@@ -41,9 +41,11 @@ export function parseUnits(text: string): bigint | null {
   return BigInt(m[1]!) * E8 + BigInt((m[2] ?? '').padEnd(8, '0'));
 }
 
-// Units ×10^8 the Spanish way, without trailing zeros: 11479870000n → "114,7987".
+// Units shown to people: at most 6 decimals (UNIT_STEP is the smallest one), the Spanish way,
+// without trailing zeros: 11479870000n → "114,7987".
+export const UNIT_STEP = 100n;
 export function unitsText(qtyE8: bigint): string {
-  const abs = qtyE8 < 0n ? -qtyE8 : qtyE8;
-  const frac = (abs % E8).toString().padStart(8, '0').replace(/0+$/, '');
-  return `${qtyE8 < 0n ? '−' : ''}${abs / E8}${frac ? `,${frac}` : ''}`;
+  const abs = divRound(qtyE8 < 0n ? -qtyE8 : qtyE8, UNIT_STEP);
+  const frac = (abs % 1_000_000n).toString().padStart(6, '0').replace(/0+$/, '');
+  return `${qtyE8 < 0n && abs > 0n ? '−' : ''}${abs / 1_000_000n}${frac ? `,${frac}` : ''}`;
 }

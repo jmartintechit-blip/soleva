@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { enhance } from '$app/forms';
   import { formatEuros, parseEuros } from '#lib/engine/money.ts';
-  import { parseUnits, unitsText } from '#lib/engine/units.ts';
+  import { UNIT_STEP, parseUnits, unitsText } from '#lib/engine/units.ts';
   import type { PageProps } from './$types';
 
   // b11/NCuadre: what Soleva thinks is there against what is real. Only what does not match is
@@ -38,7 +38,9 @@
     const qty = parseUnits(text);
     if (qty === null) return null;
     const d = qty - BigInt(r.expected);
-    return d === 0n ? '' : `${d > 0n ? '+' : ''}${unitsText(d)}${unitWord(r.kind)}`;
+    return d < UNIT_STEP && d > -UNIT_STEP
+      ? ''
+      : `${d > 0n ? '+' : ''}${unitsText(d)}${unitWord(r.kind)}`;
   };
   const changes = $derived(data.rows.filter((r) => key(r) in typed && diff(r)).length);
   const where = $derived(

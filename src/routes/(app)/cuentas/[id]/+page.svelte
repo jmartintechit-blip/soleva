@@ -13,10 +13,9 @@
   const eur = (cents: number, sign = false) =>
     `${sign && cents > 0 ? '+' : ''}${formatEuros(cents, { withCents: true })}`;
   const SYMBOL: Record<string, string> = { EUR: '€', USD: '$', GBP: '£', CHF: 'CHF' };
-  const units = (qtyE8: string, kind: string) =>
-    (Number(qtyE8) / 1e8).toLocaleString('es-ES', {
-      maximumFractionDigits: kind === 'cripto' ? 6 : 4,
-    });
+  // At most 6 decimals, without trailing zeros.
+  const units = (qtyE8: string) =>
+    (Number(qtyE8) / 1e8).toLocaleString('es-ES', { maximumFractionDigits: 6 });
   const unitWord = (kind: string) =>
     kind === 'accion' ? ' acc.' : kind === 'cripto' ? '' : ' part.';
   const price = (e8: string | null, currency: string) =>
@@ -94,7 +93,7 @@
             if (added)
               return [
                 m.instrument ?? 'Producto',
-                `Ya lo tenías · ${units(m.qtyE8!, '')} a ${eur(Math.round((Number(m.priceE8) / Number(m.fxE8)) * 100))} de media`,
+                `Ya lo tenías · ${units(m.qtyE8!)} a ${eur(Math.round((Number(m.priceE8) / Number(m.fxE8)) * 100))} de media`,
               ];
             return [
               'Cuadre',
@@ -274,12 +273,12 @@
                   : 'Sin precio · ponlo tú'}
               {:else}
                 <span class="phone"
-                  >{units(p.qtyE8, p.kind)}{unitWord(p.kind)} · {price(p.priceE8, p.currency)}</span
+                  >{units(p.qtyE8)}{unitWord(p.kind)} · {price(p.priceE8, p.currency)}</span
                 >
               {/if}
             </span>
           </span>
-          <span class="num desk">{p.estimate ? '—' : units(p.qtyE8, p.kind)}</span>
+          <span class="num desk">{p.estimate ? '—' : units(p.qtyE8)}</span>
           <span class="num desk">{p.estimate ? '—' : price(p.priceE8, p.currency)}</span>
           <span class="pos-right phone-flex">
             <span class="num" class:sv-neg={p.valueCents < 0}>{eur(p.valueCents)}</span>
