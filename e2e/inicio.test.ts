@@ -67,4 +67,12 @@ test('Inicio on the ledger: value, what you put in and made, accounts and the ma
   await expect(page.getByRole('heading', { name: 'Banco' })).toBeVisible();
   await expect(page.getByText('9.990 €').first()).toBeVisible();
   await expect(page.getByText('Ajustaste el efectivo a lo real')).toBeVisible();
+
+  // Añadir producto opens as a sheet over the account and closes back to it (the search itself
+  // goes to the price provider: covered by unit tests, not here).
+  await page.goto(`/cuentas/${bank!.id}/producto`);
+  await expect(page.getByRole('dialog', { name: 'Añadir a Banco' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Añadir a la cuenta' })).toBeDisabled();
+  await page.getByRole('link', { name: 'Cerrar' }).click();
+  await expect(page.getByRole('heading', { name: 'Banco' })).toBeVisible();
 });

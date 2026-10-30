@@ -9,10 +9,11 @@ import {
   handMade,
   moneyWeighted,
   outsideFlows,
+  unitFlows,
   valuation,
 } from './insight.ts';
-import type { Movement } from './ledger.ts';
-import { toE8 } from './units.ts';
+import { type Movement, fold } from './ledger.ts';
+import { E8, toE8 } from './units.ts';
 
 const mv = (m: Partial<Movement> & Pick<Movement, 'accountId' | 'day' | 'kind'>): Movement => ({
   seq: 0,
@@ -276,5 +277,37 @@ describe('incremental cash forecast', () => {
     expect(after.fingerprint).not.toBe(first.fingerprint);
     expect(after.firstNegative).toEqual({});
     expect(fingerprint(input, handMade([opening]))).toBe(first.fingerprint);
+  });
+});
+
+describe('units from outside', () => {
+  it('count as money put in at that day’s close, with the average price as their cost', () => {
+    const h: Holdings = {
+      accounts: [{ id: 'brk', kind: 'broker' }],
+      instruments: { w: { kind: 'etf' } },
+      estimates: {},
+      vehicles: {},
+      assets: {},
+      market: market({ w: { currency: 'EUR', price: '131.51' } }),
+    };
+    const added: Movement = {
+      accountId: 'brk',
+      day: '2026-10-30',
+      seq: 0,
+      kind: 'ajuste',
+      amountCents: 0,
+      instrumentId: 'w',
+      qtyE8: toE8('10'),
+      priceE8: toE8('97.32'),
+      fxE8: E8,
+      source: 'manual',
+    };
+    expect(unitFlows(h, [added], '2026-10-29', '2026-10-30')).toEqual({ brk: 131_510 });
+    expect(unitFlows(h, [added], '2026-10-30', '2026-10-31')).toEqual({});
+    expect(fold([added]).holdings.get('brk|w')).toEqual({ qtyE8: toE8('10'), costCents: 97_320 });
+    // The day it comes in, net worth grows by exactly what came in: nothing was made.
+    expect(valuation(h, [added], '2026-10-30').total - valuation(h, [], '2026-10-29').total).toBe(
+      131_510,
+    );
   });
 });

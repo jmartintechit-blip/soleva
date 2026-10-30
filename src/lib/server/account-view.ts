@@ -31,6 +31,9 @@ export interface Move {
   ruleId: string | null;
   instrument: string | null;
   qtyE8: string | null;
+  priceE8: string | null;
+  fxE8: string | null;
+  note: string | null;
   other: string | null;
 }
 
@@ -80,7 +83,8 @@ export async function loadAccountView(db: Db, userId: string, accountId: string,
                 from user_day where user_id = $1 and day >= $4),
        'moves', (select coalesce(json_agg(json_build_object('day', m.day, 'kind', m.kind,
            'amountCents', m.amount_cents, 'withholdingCents', m.withholding_cents, 'source', m.source,
-           'rule', r.name, 'ruleId', m.rule_id, 'instrument', i.name, 'qtyE8', m.qty_e8::text,
+           'rule', r.name, 'ruleId', m.rule_id, 'instrument', i.name, 'qtyE8', m.qty_e8::text, 'note', m.note,
+           'priceE8', m.price_e8::text, 'fxE8', m.fx_e8::text,
            'other', (select a2.name from movement o join money_account a2 on a2.id = o.account_id
                      where o.transfer_id = m.transfer_id and o.id <> m.id limit 1))
          order by m.day desc, m.seq desc, m.created_at desc), '[]')

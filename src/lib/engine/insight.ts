@@ -145,6 +145,27 @@ export const outsideFlows = (ledger: readonly Movement[], from: Day, to: Day) =>
       !(m.kind === 'apertura' && m.source === 'motor'),
   );
 
+// Units that came in from outside (a product the user already had, a cuadre of units) are money
+// put in at that day's close in euros, not a gain; units taken out, money taken out. Per account.
+export function unitFlows(h: Holdings, ledger: readonly Movement[], from: Day, to: Day) {
+  const out: Record<string, number> = {};
+  for (const m of ledger) {
+    if (m.voided || m.kind !== 'ajuste' || !m.instrumentId || !m.qtyE8) continue;
+    if (m.day <= from || m.day > to) continue;
+    const quote = h.market.close(m.instrumentId, m.day);
+    const c = h.market.currency(m.instrumentId);
+    const fx = c === 'EUR' ? E8 : h.market.perEur(c, m.day);
+    const cents =
+      quote && fx
+        ? valueCents(m.qtyE8, quote.priceE8, fx)
+        : m.priceE8
+          ? valueCents(m.qtyE8, m.priceE8, m.fxE8 ?? E8)
+          : 0;
+    out[m.accountId] = (out[m.accountId] ?? 0) + cents;
+  }
+  return out;
+}
+
 // What came into or left one account that its money did not make: the outside flows plus what
 // moved between own accounts (a transfer, a debt payment's principal). Per account, a transfer in
 // is never a gain.

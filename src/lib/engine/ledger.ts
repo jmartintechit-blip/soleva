@@ -1,4 +1,5 @@
 import type { Day } from './day.ts';
+import { E8, valueCents } from './units.ts';
 
 // The ledger as the engine sees it: the same rows as the movement table, amounts in cents and
 // units, prices and rates as BigInt ×10^8.
@@ -74,9 +75,14 @@ export function fold(movements: readonly Movement[], upTo?: Day): Book {
     if (m.kind === 'split') {
       h.qtyE8 += m.qtyE8;
     } else if (m.qtyE8 > 0n) {
-      // A buy costs what left the cash; a switched-in lot, what it cost where it came from.
+      // A buy costs what left the cash; a switched-in lot, what it cost where it came from; units
+      // brought in by hand, their average price if the user gave one.
       h.costCents +=
-        m.kind === 'traspaso_valores' ? (switched.get(m.transferId!) ?? 0) : -m.amountCents;
+        m.kind === 'traspaso_valores'
+          ? (switched.get(m.transferId!) ?? 0)
+          : m.kind === 'ajuste' && m.priceE8
+            ? valueCents(m.qtyE8, m.priceE8, m.fxE8 ?? E8)
+            : -m.amountCents;
       h.qtyE8 += m.qtyE8;
     } else {
       // Selling or switching out takes its share of the cost along.

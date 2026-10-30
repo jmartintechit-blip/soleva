@@ -55,11 +55,14 @@
     tag: string;
     // A plan's buy left undone for lack of cash: nothing moved.
     undone?: boolean;
+    // A product the user already held: no money moved either.
+    added?: boolean;
   };
   const lines = $derived.by((): Line[] => {
     if (!v) return [];
     const out: (Line & { group?: string; count?: number })[] = [];
     for (const m of v.moves) {
+      const added = m.kind === 'ajuste' && m.note === 'producto';
       const tag =
         m.source === 'cuadre'
           ? 'Cuadre'
@@ -87,6 +90,18 @@
             return group
               ? [m.rule ?? 'Plan', '1 compra al cierre del día']
               : [m.instrument ?? 'Compra', 'Compra'];
+          case 'ajuste':
+            if (added)
+              return [
+                m.instrument ?? 'Producto',
+                `Ya lo tenías · ${units(m.qtyE8!, '')} a ${eur(Math.round((Number(m.priceE8) / Number(m.fxE8)) * 100))} de media`,
+              ];
+            return [
+              'Cuadre',
+              m.qtyE8
+                ? 'Ajustaste las participaciones a lo real'
+                : 'Ajustaste el efectivo a lo real',
+            ];
           case 'no_ejecutada':
             return [m.rule ?? 'Plan', '1 compra no ejecutada · sin efectivo suficiente'];
           case 'venta':
@@ -108,13 +123,6 @@
               `Dividendo${m.instrument ? ` de ${m.instrument}` : ''}`,
               m.withholdingCents ? `${eur(gross)} − ${eur(m.withholdingCents)} de retención` : '',
             ];
-          case 'ajuste':
-            return [
-              'Cuadre',
-              m.qtyE8
-                ? 'Ajustaste las participaciones a lo real'
-                : 'Ajustaste el efectivo a lo real',
-            ];
           case 'apertura':
             return ['Saldo inicial', ''];
           case 'amortizacion':
@@ -133,6 +141,7 @@
         group,
         count: 1,
         undone: m.kind === 'no_ejecutada',
+        added,
       });
     }
     return out;
@@ -310,9 +319,9 @@
               >{/if}</span
           >
           <span class="pos-right"
-            >{#if m.undone}<span class="sv-muted small">No ejecutada</span>{:else}<span
-                class="num"
-                class:up={m.amount > 0}>{eur(m.amount, true)}</span
+            >{#if m.undone || m.added}<span class="sv-muted small"
+                >{m.undone ? 'No ejecutada' : 'Añadido'}</span
+              >{:else}<span class="num" class:up={m.amount > 0}>{eur(m.amount, true)}</span
               >{/if}{#if m.tag}<span class="tag">{m.tag}</span>{/if}</span
           >
         </div>

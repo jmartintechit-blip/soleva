@@ -15,6 +15,7 @@ import {
   accountFlows,
   alerts,
   outsideFlows,
+  unitFlows,
   valuation,
 } from '#lib/engine/insight.ts';
 import { type InterestTerms, isPayDay } from '#lib/engine/interest.ts';
@@ -497,8 +498,12 @@ export async function runUser(db: Db, userId: string, today: Day) {
         v.total += cents;
         v.byClass.liquidez += cents;
       }
-      const flows = outsideFlows(all, addDays(d, -1), d).reduce((s, m) => s + m.amountCents, 0);
+      const units = unitFlows(holdings, all, addDays(d, -1), d);
+      const flows =
+        outsideFlows(all, addDays(d, -1), d).reduce((s, m) => s + m.amountCents, 0) +
+        Object.values(units).reduce((s, c) => s + c, 0);
       const own = accountFlows(all, addDays(d, -1), d);
+      for (const [a, cents] of Object.entries(units)) own[a] = (own[a] ?? 0) + cents;
       const perAccount = Object.fromEntries(
         Object.entries(v.byAccount).map(([a, value]) => [a, [value, own[a] ?? 0, accrued[a] ?? 0]]),
       );
@@ -506,12 +511,14 @@ export async function runUser(db: Db, userId: string, today: Day) {
       if (monthOf(addDays(d, 1)) !== monthOf(d))
         for (const [account, value] of Object.entries(v.byAccount)) {
           const own = all.filter((m) => m.accountId === account);
-          const monthFlows = outsideFlows(own, addDays(`${monthOf(d)}-01`, -1), d);
+          const before = addDays(`${monthOf(d)}-01`, -1);
+          const monthFlows = outsideFlows(own, before, d);
           months.push([
             account,
             `${monthOf(d)}-01`,
             value,
-            monthFlows.reduce((s, m) => s + m.amountCents, 0),
+            monthFlows.reduce((s, m) => s + m.amountCents, 0) +
+              (unitFlows(holdings, own, before, d)[account] ?? 0),
           ]);
         }
     }
