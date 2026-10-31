@@ -1,3 +1,4 @@
+import type { Db } from '../db/index.ts';
 import { type Fetch, fetchRetry } from './provider.ts';
 
 export interface Candidate {
@@ -111,9 +112,53 @@ export async function isinOf(name: string, f: Fetch = fetch): Promise<string | n
   }
 }
 
+// The ISIN of a product listed under these symbols: the cache first, FIRDS once (saved for all).
+export async function isinFor(
+  db: Db,
+  name: string,
+  symbols: string[],
+  f: Fetch = fetch,
+): Promise<string | null> {
+  const [hit] = await db.query<{ isin: string }>(
+    `select isin from isin_cache where symbol = any($1) limit 1`,
+    [symbols],
+  );
+  if (hit) return hit.isin;
+  const isin = await isinOf(name, f);
+  if (isin)
+    await db.query(
+      `insert into isin_cache (symbol, isin) select unnest($1::text[]), $2 on conflict do nothing`,
+      [symbols, isin],
+    );
+  return isin;
+}
+
+// The ISINs the search lacks, by product name; arrives after the results, which never wait.
+export async function missingIsins(
+  db: Db,
+  products: Product[],
+  f: Fetch = fetch,
+): Promise<Record<string, string>> {
+  const found: Record<string, string> = {};
+  await Promise.all(
+    products
+      .filter((p) => !p.isin && p.kind !== 'cripto')
+      .map(async (p) => {
+        const isin = await isinFor(
+          db,
+          p.name,
+          p.listings.map((l) => l.symbol),
+          f,
+        ).catch(() => null);
+        if (isin) found[p.name] = isin;
+      }),
+  );
+  return found;
+}
+
 // The search, one row per product (same name = same product on another exchange), in the
-// provider's order. An ISIN typed by the user is that product's ISIN.
-export async function searchProducts(q: string, f: Fetch = fetch): Promise<Product[]> {
+// provider's order, with the ISINs already cached. An ISIN typed by the user is that product's.
+export async function searchProducts(db: Db, q: string, f: Fetch = fetch): Promise<Product[]> {
   const text = q.trim().toUpperCase();
   let found = await searchInstruments(q, f);
   if (ISIN.test(text) && found[0]) {
@@ -130,11 +175,17 @@ export async function searchProducts(q: string, f: Fetch = fetch): Promise<Produ
   }
   const products = [...groups.values()];
   for (const p of products) p.listings.sort((a, b) => rank(a) - rank(b));
-  await Promise.all(
-    products.map(async (p) => {
-      if (ISIN.test(text)) p.isin = text;
-      else if (p.kind !== 'cripto') p.isin = await isinOf(p.name, f);
-    }),
+  const cached = new Map(
+    (
+      await db.query<{ symbol: string; isin: string }>(
+        `select symbol, isin from isin_cache where symbol = any($1)`,
+        [found.map((c) => c.symbol)],
+      )
+    ).map((r) => [r.symbol, r.isin]),
   );
+  for (const p of products)
+    p.isin = ISIN.test(text)
+      ? text
+      : (p.listings.map((l) => cached.get(l.symbol)).find(Boolean) ?? null);
   return products;
 }

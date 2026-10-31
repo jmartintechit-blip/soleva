@@ -65,6 +65,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.auth = () => authFor(event.url.origin);
   event.locals.db = () => (db ??= createNeonDb(getPool()));
   event.locals.mail = mail;
+  const deferred: Promise<unknown>[] = [];
+  event.locals.defer = (work) => (deferred.push(work), work);
   try {
     return await requestPool.run(getPool, async () => {
       if (isAuthPath(event.url.toString(), { basePath: '/api/auth' })) {
@@ -84,6 +86,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       );
     });
   } finally {
-    if (pool) waitUntil(pool.end());
+    // Read after the deferred work: it may be what opens the pool.
+    waitUntil(Promise.allSettled(deferred).then(() => pool?.end()));
   }
 };

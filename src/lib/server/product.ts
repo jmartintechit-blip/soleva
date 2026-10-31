@@ -3,7 +3,7 @@ import { E8, divRound } from '#lib/engine/units.ts';
 import type { Db } from './db/index.ts';
 import { type Fetch } from './market/provider.ts';
 import { lastClosedDay } from './market/refresh.ts';
-import { type Candidate, isinOf, searchInstruments } from './market/search.ts';
+import { type Candidate, isinFor, searchInstruments } from './market/search.ts';
 import { yahoo } from './market/yahoo.ts';
 
 // Añadir producto (b11/NProducto): a product the user already holds, by units and average price.
@@ -31,7 +31,7 @@ export async function quote(
     if (!found) return null;
     const [s, isin] = await Promise.all([
       yahoo(f).closes(symbol),
-      found.kind === 'cripto' ? null : isinOf(found.name, f),
+      found.kind === 'cripto' ? null : isinFor(db, found.name, [symbol], f).catch(() => null),
     ]);
     const until = lastClosedDay(today, found.kind === 'cripto');
     const closes = s.closes.filter((c) => c.day <= until);

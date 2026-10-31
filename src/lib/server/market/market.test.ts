@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { toE8 } from '#lib/engine/units.ts';
+import { migrate } from '../db/migrate.ts';
+import { createPgliteDb } from '../db/pglite.ts';
 import { parseEcb } from './ecb.ts';
 import { marketstack } from './marketstack.ts';
 import { fetchRetry } from './provider.ts';
@@ -197,22 +199,41 @@ describe('searchProducts', () => {
     });
   };
 
-  it('shows each product once, with its ISIN and the euro listing first', async () => {
-    const { searchProducts } = await import('./search.ts');
-    const found = await searchProducts('msci world', f);
+  it('shows each product once, the euro listing first, and its ISIN after, from then on cached', async () => {
+    const { missingIsins, searchProducts } = await import('./search.ts');
+    const db = createPgliteDb();
+    await migrate(db);
+    let firds = 0;
+    const counted = (url: string | URL | Request) => {
+      if (String(url).includes('registers.esma')) firds++;
+      return f(url);
+    };
+    const found = await searchProducts(db, 'msci world', counted);
     expect(found.map((p) => [p.name, p.isin, p.listings.map((l) => l.symbol)])).toEqual([
-      [WORLD, 'IE00B4L5Y983', ['EUNL.DE', 'IWDA.AS', 'IWDA.L']],
+      [WORLD, null, ['EUNL.DE', 'IWDA.AS', 'IWDA.L']],
       ['iShares MSCI World ETF', null, ['URTH']],
     ]);
+    expect(firds).toBe(0);
+    expect(await missingIsins(db, found, counted)).toEqual({ [WORLD]: 'IE00B4L5Y983' });
+    expect(firds).toBe(2);
+    // Next time the found one comes with the results; only the one FIRDS does not know is asked.
+    const again = await searchProducts(db, 'msci world', counted);
+    expect(again.map((p) => p.isin)).toEqual(['IE00B4L5Y983', null]);
+    expect(await missingIsins(db, again, counted)).toEqual({});
+    expect(firds).toBe(3);
+    await db.close();
   });
 
   it('finds the other listings of a typed ISIN, and an ISIN no name leads to is not shown', async () => {
     const { isinOf, searchProducts } = await import('./search.ts');
-    const found = await searchProducts(' ie00b4l5y983 ', f);
+    const db = createPgliteDb();
+    await migrate(db);
+    const found = await searchProducts(db, ' ie00b4l5y983 ', f);
     expect(found.map((p) => [p.isin, p.listings.map((l) => l.market)])).toEqual([
       ['IE00B4L5Y983', ['XETRA', 'Amsterdam', 'London']],
     ]);
     expect(await isinOf('Nothing like it', f)).toBeNull();
     expect(await isinOf(WORLD, async () => new Response('', { status: 500 }))).toBeNull();
+    await db.close();
   });
 });

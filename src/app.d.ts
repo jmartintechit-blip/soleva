@@ -8,6 +8,8 @@ declare global {
       auth: () => Auth;
       db: () => Db;
       mail: (email: Email) => Promise<void>;
+      // Work that outlives the response (data streamed to the page): the pool waits for it.
+      defer: <T>(work: Promise<T>) => Promise<T>;
     }
   }
 }

@@ -103,7 +103,9 @@
           <span class="radio" class:on></span>
           <span class="what"
             ><span class="name">{r.name}</span><span class="meta"
-              >{r.isin ?? shown.symbol} · {shown.market}{on && data.chosen
+              >{#await data.isins}{r.isin ?? shown.symbol}{:then found}{r.isin ??
+                  found[r.name] ??
+                  shown.symbol}{/await} · {shown.market}{on && data.chosen
                 ? ` · ${data.chosen.currency}`
                 : ''}</span
             ></span
