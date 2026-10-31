@@ -63,6 +63,42 @@ export async function quote(
   }
 }
 
+// The shared instrument of a quoted listing, with its closes and ISIN: created the first time
+// someone holds it or plans it, named by the provider, never by what the page sent.
+export async function ensureInstrument(
+  tx: Db,
+  q: NonNullable<Awaited<ReturnType<typeof quote>>>,
+): Promise<string> {
+  await tx.query(
+    `insert into instrument (kind, name, currency, price_source, source_id, ticker)
+     values ($1, $2, $3, 'yahoo', $4, $5)
+     on conflict (price_source, source_id) where owner_user_id is null do nothing`,
+    [
+      q.quote.kind,
+      q.quote.name.slice(0, 120),
+      q.quote.currency,
+      q.quote.symbol,
+      q.quote.symbol.slice(0, 20),
+    ],
+  );
+  const [{ id }] = await tx.query<{ id: string }>(
+    `select id from instrument where price_source = 'yahoo' and source_id = $1 and owner_user_id is null`,
+    [q.quote.symbol],
+  );
+  for (const c of q.closes)
+    await tx.query(
+      `insert into price (instrument_id, day, close_e8, source) values ($1, $2, $3, 'yahoo')
+       on conflict do nothing`,
+      [id, c.day, c.priceE8.toString()],
+    );
+  if (q.quote.isin)
+    await tx.query(`update instrument set isin = $2 where id = $1 and isin is null`, [
+      id,
+      q.quote.isin,
+    ]);
+  return id!;
+}
+
 // Adds what the user holds; null without the right to change the account, 'sin_precio' when the
 // product cannot be priced now. The average price is in euros ×10^8.
 export async function addProduct(
@@ -102,31 +138,7 @@ export async function addProduct(
       if (!fx && held.currency !== 'EUR') return 'sin_precio';
       perEurE8 = held.currency === 'EUR' ? E8 : BigInt(fx!.e8);
     }
-    if (!id) {
-      // Shared by everyone who holds it; named by the provider, never by what the page sent.
-      await tx.query(
-        `insert into instrument (kind, name, currency, price_source, source_id, ticker)
-         values ($1, $2, $3, 'yahoo', $4, $5)
-         on conflict (price_source, source_id) where owner_user_id is null do nothing`,
-        [
-          q.quote.kind,
-          q.quote.name.slice(0, 120),
-          q.quote.currency,
-          q.quote.symbol,
-          q.quote.symbol.slice(0, 20),
-        ],
-      );
-      [{ id }] = await tx.query<{ id: string }>(
-        `select id from instrument where price_source = 'yahoo' and source_id = $1 and owner_user_id is null`,
-        [q.quote.symbol],
-      );
-      for (const c of q.closes)
-        await tx.query(
-          `insert into price (instrument_id, day, close_e8, source) values ($1, $2, $3, 'yahoo')
-           on conflict do nothing`,
-          [id, c.day, c.priceE8.toString()],
-        );
-    }
+    id ??= await ensureInstrument(tx, q);
     if (q.quote.isin)
       await tx.query(`update instrument set isin = $2 where id = $1 and isin is null`, [
         id,

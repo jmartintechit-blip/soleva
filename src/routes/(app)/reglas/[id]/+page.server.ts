@@ -10,6 +10,8 @@ import {
   setAutoActive,
 } from '#lib/server/auto-rules.ts';
 import { runUser } from '#lib/server/engine-run.ts';
+import { planContext, planLegs, readPlanForm, savePlan } from '#lib/server/plans.ts';
+import { quote } from '#lib/server/product.ts';
 import { today as madridToday } from '#lib/server/plan.ts';
 import { createRule, deleteRule, getRule, ruleInput, updateRule } from '#lib/server/rules.ts';
 import { fieldErrors, requireUserId } from '#lib/server/session.ts';
@@ -24,10 +26,32 @@ export const load: PageServerLoad = async (event) => {
   if (ledger) {
     const auto = event.params.id === NEW ? null : await getAutoRule(db, userId, event.params.id);
     if (event.params.id !== NEW && !auto) error(404, 'No encontrada');
+    // A plan (b12/RPlan): one there, or a new one for the account in ?plan=.
+    const planAccount = auto
+      ? auto.kind === 'plan'
+        ? auto.fromAccountId
+        : null
+      : event.url.searchParams.get('plan');
+    if (planAccount) {
+      const context = await planContext(db, userId, planAccount);
+      if (!context) error(404, 'No encontrada');
+      return {
+        ledger: {
+          rule: auto,
+          accounts: [],
+          today: madridToday(),
+          plan: { context, legs: auto ? await planLegs(db, auto.id) : [] },
+        },
+        rule: null,
+        accounts: [],
+        month: '',
+        today: 0,
+      };
+    }
     const accounts = await ruleAccounts(db, userId);
     if (!auto && !accounts.length) redirect(303, '/alta');
     return {
-      ledger: { rule: auto, accounts, today: madridToday() },
+      ledger: { rule: auto, accounts, today: madridToday(), plan: null },
       rule: null,
       accounts: [],
       month: '',
@@ -112,6 +136,29 @@ export const actions: Actions = {
     if (!id) error(404, 'No encontrada');
     await runUser(db, userId, day);
     redirect(303, event.params.id === NEW ? '/reglas?creada' : '/reglas');
+  },
+  guardar_plan: async (event) => {
+    const userId = await requireUserId(event);
+    const day = madridToday();
+    const read = readPlanForm(await event.request.formData(), day);
+    if (!read.ok) return fail(400, { values: read.values, legs: read.legs, errors: read.errors });
+    const db = event.locals.db();
+    const id = await savePlan(
+      db,
+      userId,
+      event.params.id === NEW ? null : event.params.id,
+      read.input,
+      async (symbol) => quote(db, symbol, day),
+    );
+    if (id === null) error(404, 'No encontrada');
+    if (id === 'sin_precio')
+      return fail(503, {
+        values: read.values,
+        legs: read.legs,
+        errors: { legs: 'No conseguimos el precio de un producto ahora. Prueba en un momento.' },
+      });
+    await runUser(db, userId, day);
+    redirect(303, `/cuentas/${read.input.accountId}`);
   },
   pausar_regla: async (event) => {
     const form = await event.request.formData();

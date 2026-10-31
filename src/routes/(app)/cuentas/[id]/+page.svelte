@@ -237,6 +237,12 @@
             {/each}
           </div>
         </section>
+      {:else}
+        {#if ['broker', 'cripto', 'inversion'].includes(v.account.kind)}
+          <a class="new-plan f2" href="/reglas/nueva?plan={v.account.id}"
+            >+ Programar un plan de inversión</a
+          >
+        {/if}
       {/each}
 
       <div class="tabs phone f2" role="tablist" aria-label="Vista">
@@ -403,6 +409,15 @@
   }
   .buttons.phone {
     display: flex;
+  }
+  .new-plan {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
   .plan {
     display: flex;

@@ -24,13 +24,16 @@ export interface AutoRuleRow {
   toAccountId: string | null;
   amountCents: number | null;
   active: boolean;
-  // A plan's monthly sum of its legs, per occurrence.
+  shortfall: 'no_comprar' | 'otra_cuenta';
+  shortfallAccountId: string | null;
+  // A plan's sum of its legs, per occurrence.
   legsCents: number;
 }
 
 const SELECT = `select r.id, r.name, r.kind, r.frequency, r.day, r.start_on::text as "startOn",
     r.end_on::text as "endOn", r.from_account_id as "fromAccountId",
     r.to_account_id as "toAccountId", r.amount_cents::float8 as "amountCents", r.active,
+    r.shortfall, r.shortfall_account_id as "shortfallAccountId",
     coalesce((select sum(l.amount_cents) from auto_rule_leg l where l.rule_id = r.id), 0)::float8
       as "legsCents"
   from auto_rule r`;
