@@ -324,7 +324,8 @@
           {/if}
           {#if debt !== null}
             <div class="line">
-              <span class="sv-muted">{debt.name}</span><span class="num sv-neg"
+              {#if 'id' in debt}<a class="sv-muted" href="/cuentas/{debt.id}/deuda">{debt.name}</a
+                >{:else}<span class="sv-muted">{debt.name}</span>{/if}<span class="num sv-neg"
                 >{euros(debt.cents)}</span
               >
             </div>
