@@ -200,6 +200,7 @@ const holdings: Holdings = {
     },
   },
   assets: {},
+  properties: {},
   market: prices,
 };
 

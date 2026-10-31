@@ -4,7 +4,7 @@ import { type Movement, fold } from './ledger.ts';
 import { roundHalfAwayFromZero } from './money.ts';
 import { perMonth } from './schedule.ts';
 import { E8, valueCents } from './units.ts';
-import { assetCents, estimateCents, vehicleCents } from './valuation.ts';
+import { assetCents, estimateCents, propertyCents, vehicleCents } from './valuation.ts';
 
 export type AccountKind =
   | 'efectivo'
@@ -39,6 +39,14 @@ export interface Holdings {
     string,
     { purchaseCents: number; curve: { years: number; pctBp: number }[]; purchasedOn: Day }
   >;
+  // Homes: what was put into each (the opening refers to `from`) and its region's index.
+  properties: Record<
+    string,
+    {
+      flows: { day: Day; cents: number; from?: Day }[];
+      index: { quarter: Day; indexE3: number }[];
+    }
+  >;
   market: Market;
 }
 
@@ -66,7 +74,7 @@ const CLASS_OF: Record<InstrumentKind, AssetClass> = {
 
 // What everything is worth on `day`, by account and by kind of asset. Cash and adjustments come
 // from the ledger; units at the day's close in euros (estimates at their rate); a car and other
-// goods at their valuation (a manual adjustment adds to it). Debts are negative, so net worth is
+// goods at their valuation (a manual adjustment adds to it), a home by INE's index. Debts are negative, so net worth is
 // the plain sum.
 export function valuation(h: Holdings, ledger: readonly Movement[], day: Day) {
   const book = fold(ledger, day);
@@ -97,7 +105,10 @@ export function valuation(h: Holdings, ledger: readonly Movement[], day: Day) {
           ? assetCents(g.purchaseCents, g.curve, g.purchasedOn, day)
           : 0;
       add(a.id, 'bienes', base + cash);
-    } else add(a.id, a.kind === 'inmueble' ? 'inmuebles' : 'liquidez', cash);
+    } else if (a.kind === 'inmueble') {
+      const p = h.properties[a.id];
+      add(a.id, 'inmuebles', p ? propertyCents(p.flows, p.index, day) : cash);
+    } else add(a.id, 'liquidez', cash);
   }
   for (const [key, held] of book.holdings) {
     const [account, instrument] = key.split('|') as [string, string];

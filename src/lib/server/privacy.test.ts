@@ -6,6 +6,7 @@ import { migrate } from './db/migrate.ts';
 import { createPgliteDb } from './db/pglite.ts';
 import { migrateUserToLedger } from './ledger-migration.ts';
 import { EXPORT_TABLES, deleteUser, endSessions, exportData, toCsv } from './privacy.ts';
+import { createProperty } from './property.ts';
 import { createRule } from './rules.ts';
 import { saveAssumptions, saveReminder } from './settings.ts';
 
@@ -86,6 +87,7 @@ describe('exportData', () => {
   });
 
   it('exports the ledger and everything around it, only the user’s own, every table as CSV', async () => {
+    await db.query(`insert into municipality values ('41039', 'Écija', 'ecija', '01')`);
     const [{ id: etf }] = await db.query<{ id: string }>(
       `insert into instrument (kind, name, isin, currency, price_source, source_id)
        values ('etf', 'World', 'IE00B4L5Y983', 'USD', 'yahoo', 'IWDA.AS') returning id`,
@@ -110,11 +112,26 @@ describe('exportData', () => {
         `insert into alert (user_id, kind, day, dedupe_key) values ($1, 'precio_viejo', '2026-10-02', 'p')`,
         [id],
       );
+      await createProperty(db, id, '2026-10-02', {
+        name: 'Piso',
+        kind: 'habitual',
+        municipalityCode: '41039',
+        areaM2: 90,
+        method: 'propio',
+        ownCents: 11_500_000,
+        growthBp: 200,
+      });
     }
 
     const data = await exportData(db, 'ana');
     expect([...EXPORT_TABLES].sort()).toEqual(Object.keys(data).sort());
-    expect(data.movimientos).toEqual([
+    expect(data.inmuebles).toEqual([
+      expect.objectContaining({ municipio: 'Écija', area_m2: 90, value_method: 'propio' }),
+    ]);
+    expect(data.movimientos.filter((m) => m.account_name === 'Piso')).toEqual([
+      expect.objectContaining({ kind: 'apertura', amount_eur: 115_000 }),
+    ]);
+    expect(data.movimientos.filter((m) => m.account_name !== 'Piso')).toEqual([
       expect.objectContaining({ kind: 'apertura', amount_eur: 100, source: 'migracion' }),
       expect.objectContaining({
         kind: 'compra',
@@ -137,7 +154,7 @@ describe('exportData', () => {
 
     // Ana leaving takes her ledger; Eva's stays whole.
     await deleteUser(db, 'ana');
-    expect((await exportData(db, 'eva')).movimientos).toHaveLength(2);
+    expect((await exportData(db, 'eva')).movimientos).toHaveLength(3);
   });
 
   it('writes CSV a spreadsheet opens safely', () => {

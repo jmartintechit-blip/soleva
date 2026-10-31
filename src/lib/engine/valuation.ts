@@ -68,3 +68,23 @@ export function estimateCents(
       .reduce((s, c) => s + c.cents * r ** (daysBetween(c.day, on) / 365), 0),
   );
 }
+
+// A home: each value put into it (the opening, a value set by hand later) follows INE's housing
+// price index of its region from the quarter that value refers to (`from`, else its day) to the
+// latest quarter published up to `on`. The ratios chain, so a value set by hand is exactly that
+// value on its day and moves with the index from there. Without the index, values stay as given.
+export function propertyCents(
+  flows: { day: Day; cents: number; from?: Day }[],
+  index: { quarter: Day; indexE3: number }[],
+  on: Day,
+): number {
+  const at = (d: Day) => index.findLast((x) => x.quarter <= d)?.indexE3;
+  const now = at(on);
+  let sum = 0;
+  for (const f of flows) {
+    if (f.day > on) continue;
+    const base = at(f.from ?? f.day);
+    sum += now && base ? (f.cents * now) / base : f.cents;
+  }
+  return roundHalfAwayFromZero(sum);
+}

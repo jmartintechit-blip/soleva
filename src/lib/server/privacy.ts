@@ -80,6 +80,11 @@ export async function exportData(db: Db, userId: string) {
     q(`select account_id, category, ${eur('purchase_cents')} as purchase_eur,
          purchased_on::text as purchased_on
        from asset where account_id in (${OWN}) order by account_id`),
+    q(`select p.account_id, p.kind, m.name as municipio, p.area_m2, p.purchase_year,
+         ${eur('p.purchase_cents')} as purchase_eur, p.value_method, p.value_on::text as value_on,
+         p.growth_bp, p.mortgage_account_id
+       from property p join municipality m on m.code = p.municipality_code
+       where p.account_id in (${OWN}) order by p.account_id`),
     q(`select id, kind, name, isin, ticker, currency, ${iso('created_at')} as created_at
        from instrument where owner_user_id = $1 order by created_at, id`),
     q(`select o.instrument_id, i.name as instrument, o.day::text as day, ${e8('o.close_e8')} as price
@@ -103,6 +108,7 @@ export async function exportData(db: Db, userId: string) {
     deudas,
     vehiculos,
     bienes,
+    inmuebles,
     instrumentos_propios,
     precios_propios,
     alertas,
@@ -124,6 +130,7 @@ export async function exportData(db: Db, userId: string) {
     deudas,
     vehiculos,
     bienes,
+    inmuebles,
     instrumentos_propios,
     precios_propios,
     alertas,
@@ -149,6 +156,7 @@ export const EXPORT_TABLES = [
   'deudas',
   'vehiculos',
   'bienes',
+  'inmuebles',
   'instrumentos_propios',
   'precios_propios',
   'alertas',

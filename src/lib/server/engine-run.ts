@@ -103,6 +103,12 @@ interface Setup {
     purchasedOn: Day;
     curve: { years: number; pctBp: number }[] | null;
   }[];
+  properties: {
+    accountId: string;
+    valueOn: Day;
+    flows: [Day, string, Movement['kind']][];
+    index: [Day, number][];
+  }[];
 }
 
 // Read 1: the run's state (and whether anything was entered or voided by hand since the last
@@ -167,7 +173,18 @@ async function readSetup(tx: Db, userId: string): Promise<Setup> {
            'purchaseCents', s.purchase_cents::text, 'purchasedOn', s.purchased_on,
            'curve', (select json_agg(json_build_object('years', c.years, 'pctBp', c.pct_bp))
                      from asset_curve c where c.category = s.category))), '[]')
-         from asset s where s.account_id in (select id from a))
+         from asset s where s.account_id in (select id from a)),
+       -- Whole, also in a compact run: each value is indexed from its own day.
+       'properties', (select coalesce(json_agg(json_build_object('accountId', p.account_id,
+           'valueOn', p.value_on,
+           'flows', (select coalesce(json_agg(json_build_array(m.day, m.amount_cents::text, m.kind)
+                       order by m.day, m.seq), '[]')
+                     from movement m where m.account_id = p.account_id and m.voided_at is null),
+           'index', (select coalesce(json_agg(json_build_array(h.quarter, h.index_e3) order by h.quarter), '[]')
+                     from housing_index h where h.region = coalesce((select z.region from housing_index z
+                       where z.region = r.region limit 1), '00')))), '[]')
+         from property p join municipality r on r.code = p.municipality_code
+         where p.account_id in (select id from a))
      )::text as j`,
     [userId],
   );
@@ -433,6 +450,17 @@ export async function loadUser(tx: Db, userId: string, setup: Setup, from: Day, 
       curve: s.curve ?? [],
     };
 
+  const properties: Holdings['properties'] = {};
+  for (const p of setup.properties)
+    properties[p.accountId] = {
+      flows: p.flows.map(([day, cents, kind]) => ({
+        day,
+        cents: Number(cents),
+        from: kind === 'apertura' ? p.valueOn : undefined,
+      })),
+      index: p.index.map(([quarter, indexE3]) => ({ quarter, indexE3 })),
+    };
+
   const input: EngineInput = { rules, interest, dividends, debts, market };
   const holdings: Holdings = {
     accounts,
@@ -440,6 +468,7 @@ export async function loadUser(tx: Db, userId: string, setup: Setup, from: Day, 
     estimates: setup.estimates,
     vehicles,
     assets,
+    properties,
     market,
   };
   return { ledger, provisional, standIns, input, holdings };

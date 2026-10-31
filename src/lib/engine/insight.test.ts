@@ -101,6 +101,7 @@ describe('valuation and alerts', () => {
       },
     },
     assets: {},
+    properties: {},
     market: market({
       world: { currency: 'USD', price: '108.50' },
       gold: { currency: 'USD', price: '43.40' },
@@ -153,6 +154,36 @@ describe('valuation and alerts', () => {
       deudas: -300_000,
     });
     expect(v.total).toBe(260_000 + 209_000 + 40_000 + 215_000 - 300_000);
+  });
+
+  it('values a home by its region’s index, apart from the cash its account holds', () => {
+    const home = { id: 'home', kind: 'inmueble' as const };
+    const opening = mv({
+      accountId: 'home',
+      day: '2026-11-01',
+      kind: 'apertura',
+      amountCents: 10_000_000,
+    });
+    const withHome: Holdings = {
+      ...h,
+      accounts: [home],
+      properties: {
+        home: {
+          flows: [{ day: '2026-11-01', cents: 10_000_000, from: '2026-04-01' }],
+          index: [
+            { quarter: '2026-04-01', indexE3: 100_000 },
+            { quarter: '2026-07-01', indexE3: 103_000 },
+          ],
+        },
+      },
+    };
+    const v = valuation(withHome, [opening], '2026-12-01');
+    expect(v.byClass.inmuebles).toBe(10_300_000);
+    expect(v.byAccount).toEqual({ home: 10_300_000 });
+    // Without its details yet (an Alta before RInmueble), the opening's cash.
+    expect(valuation({ ...h, accounts: [home] }, [opening], '2026-12-01').byClass.inmuebles).toBe(
+      10_000_000,
+    );
   });
 
   it('warns of cash running out, a plan above what comes in, a promotion ending and old prices', () => {
@@ -248,6 +279,7 @@ describe('incremental cash forecast', () => {
     estimates: {},
     vehicles: {},
     assets: {},
+    properties: {},
     market: market({}),
   };
   const opening = mv({
@@ -288,6 +320,7 @@ describe('units from outside', () => {
       estimates: {},
       vehicles: {},
       assets: {},
+      properties: {},
       market: market({ w: { currency: 'EUR', price: '131.51' } }),
     };
     const added: Movement = {

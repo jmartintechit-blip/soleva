@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { amortization, annuityCents, outstandingOn } from './debt.ts';
 import { type InterestTerms, MICRO, dailyAccrual, isPayDay, payment } from './interest.ts';
-import { assetCents, estimateCents, vehicleCents, wholeYears } from './valuation.ts';
+import { assetCents, estimateCents, propertyCents, vehicleCents, wholeYears } from './valuation.ts';
 
 const terms: InterestTerms = {
   tiers: [{ upToCents: 5_000_000, rateBp: 250 }, { rateBp: 0 }],
@@ -130,5 +130,40 @@ describe('valuation', () => {
         '2027-01-01',
       ),
     ).toBe(209_000);
+  });
+});
+
+describe('propertyCents', () => {
+  // Andalucía, second-hand, base 2025 (INE table 80270).
+  const ipv = [
+    { quarter: '2026-01-01', indexE3: 108_090 },
+    { quarter: '2026-04-01', indexE3: 111_393 },
+    { quarter: '2026-07-01', indexE3: 114_000 },
+  ];
+  // 90 m² × 1.231,50 €/m² of Écija in 2026T2.
+  const opening = { day: '2026-11-01', cents: 11_083_500, from: '2026-04-01' };
+
+  it('moves the m² value with the index from the Ministry’s quarter', () => {
+    expect(propertyCents([opening], ipv.slice(0, 2), '2026-11-01')).toBe(11_083_500);
+    // 2026T3 out: × 114 / 111,393.
+    expect(propertyCents([opening], ipv, '2026-11-01')).toBe(11_342_894);
+    expect(propertyCents([opening], ipv, '2026-10-31')).toBe(0);
+  });
+
+  it('a value given today waits for a later quarter; one set by hand wins from its day', () => {
+    const own = { day: '2026-11-01', cents: 11_500_000 };
+    expect(propertyCents([own], ipv, '2027-03-01')).toBe(11_500_000);
+    const later = [...ipv, { quarter: '2027-01-01', indexE3: 117_420 }];
+    // From 2026T3 (the latest out on its day… and the latest ≤ its quarter) to 2027T1.
+    expect(propertyCents([own], later, '2027-01-01')).toBe(11_845_000);
+    // On 1 Feb the user says 120.000 €: the adjustment makes it so, and it moves from there.
+    const set = { day: '2027-02-01', cents: 12_000_000 - 11_845_000 };
+    expect(propertyCents([own, set], later, '2027-02-01')).toBe(12_000_000);
+    const next = [...later, { quarter: '2027-04-01', indexE3: 120_000 }];
+    expect(propertyCents([own, set], next, '2027-05-01')).toBe(
+      Math.round((12_000_000 * 120_000) / 117_420),
+    );
+    // Without the index, as given.
+    expect(propertyCents([own], [], '2030-01-01')).toBe(11_500_000);
   });
 });
