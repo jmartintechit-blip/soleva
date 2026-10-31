@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatEuros } from '#lib/engine/money.ts';
   import { FREQUENCY_LABEL, TYPE_LABEL } from '#lib/labels.ts';
+  import Ledger from './Ledger.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -21,59 +22,64 @@
   <title>Reglas · Soleva</title>
 </svelte:head>
 
-<header class="sv-enter">
-  <div>
-    <h1 class="title-lg">Reglas</h1>
-    <p class="body sv-muted">
-      Cómo entra, sale y se mueve tu dinero. Soleva no mueve dinero: solo apunta lo que tú haces.
-    </p>
-  </div>
-  {#if data.hasAccounts}
-    <a class="sv-btn sv-btn--primary sv-btn--sm" href="/reglas/nueva">Nueva regla</a>
-  {/if}
-</header>
-
-{#if !data.hasAccounts}
-  <p class="body sv-muted">
-    Las reglas mueven dinero entre tus cuentas. <a href="/cuentas/nueva">Crea primero una cuenta</a
-    >.
-  </p>
-{:else if !data.rules.length}
-  <p class="body sv-muted">
-    Aún no tienes reglas. Empieza por tu nómina, tus gastos fijos y lo que apartas cada mes.
-  </p>
-{/if}
-
-<section aria-label="Tus reglas">
-  {#each data.rules as r (r.id)}
-    <div class="sv-row" class:off={!r.active}>
-      <a class="sv-row__main" href="/reglas/{r.id}">
-        <span class="sv-row__title">{r.name}</span>
-        <span class="sv-row__meta">
-          {TYPE_LABEL[r.type]} · {r.frequency === 'una_vez'
-            ? `una vez, ${r.startMonth}`
-            : `${FREQUENCY_LABEL[r.frequency].toLowerCase()}, día ${r.day}`}{route(r)
-            ? ` · ${route(r)}`
-            : ''}
-        </span>
-      </a>
-      <span class="sv-row__value"
-        >{SIGN[r.type]}{formatEuros(r.amountCents, { withCents: true })}
-        <span class="sv-muted every">{EVERY[r.frequency]}</span></span
-      >
-      <form method="POST" action="?/activar">
-        <input type="hidden" name="id" value={r.id} />
-        <input type="hidden" name="active" value={String(!r.active)} />
-        <button
-          class="sv-switch"
-          role="switch"
-          aria-checked={r.active}
-          aria-label="{r.name}: {r.active ? 'activa' : 'en pausa'}"
-        ></button>
-      </form>
+{#if data.ledger}
+  <Ledger {...data.ledger} />
+{:else}
+  <header class="sv-enter">
+    <div>
+      <h1 class="title-lg">Reglas</h1>
+      <p class="body sv-muted">
+        Cómo entra, sale y se mueve tu dinero. Soleva no mueve dinero: solo apunta lo que tú haces.
+      </p>
     </div>
-  {/each}
-</section>
+    {#if data.hasAccounts}
+      <a class="sv-btn sv-btn--primary sv-btn--sm" href="/reglas/nueva">Nueva regla</a>
+    {/if}
+  </header>
+
+  {#if !data.hasAccounts}
+    <p class="body sv-muted">
+      Las reglas mueven dinero entre tus cuentas. <a href="/cuentas/nueva"
+        >Crea primero una cuenta</a
+      >.
+    </p>
+  {:else if !data.rules.length}
+    <p class="body sv-muted">
+      Aún no tienes reglas. Empieza por tu nómina, tus gastos fijos y lo que apartas cada mes.
+    </p>
+  {/if}
+
+  <section aria-label="Tus reglas">
+    {#each data.rules as r (r.id)}
+      <div class="sv-row" class:off={!r.active}>
+        <a class="sv-row__main" href="/reglas/{r.id}">
+          <span class="sv-row__title">{r.name}</span>
+          <span class="sv-row__meta">
+            {TYPE_LABEL[r.type]} · {r.frequency === 'una_vez'
+              ? `una vez, ${r.startMonth}`
+              : `${FREQUENCY_LABEL[r.frequency].toLowerCase()}, día ${r.day}`}{route(r)
+              ? ` · ${route(r)}`
+              : ''}
+          </span>
+        </a>
+        <span class="sv-row__value"
+          >{SIGN[r.type]}{formatEuros(r.amountCents, { withCents: true })}
+          <span class="sv-muted every">{EVERY[r.frequency]}</span></span
+        >
+        <form method="POST" action="?/activar">
+          <input type="hidden" name="id" value={r.id} />
+          <input type="hidden" name="active" value={String(!r.active)} />
+          <button
+            class="sv-switch"
+            role="switch"
+            aria-checked={r.active}
+            aria-label="{r.name}: {r.active ? 'activa' : 'en pausa'}"
+          ></button>
+        </form>
+      </div>
+    {/each}
+  </section>
+{/if}
 
 {#if data.created}
   <div class="toast" role="status">
