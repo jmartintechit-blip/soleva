@@ -292,7 +292,11 @@ function interestSince(input: EngineInput, ledger: Movement[], from: Day) {
     if (!isPayDay(t, start)) continue;
     const own = ledger.filter((m) => m.accountId === id && !m.voided);
     let balance = own.filter((m) => m.day <= start).reduce((s, m) => s + m.amountCents, 0);
-    let sum = 0n;
+    // A pay day's own interest goes in its payment; with none (the account opened that day,
+    // after the run), it is still owed and waits for the next one.
+    let sum = own.some((m) => m.kind === 'interes' && m.day === start)
+      ? 0n
+      : dailyAccrual(balance, t, start);
     for (const d of daysAfter(start, from)) {
       for (const m of own) if (m.day === d) balance += m.amountCents;
       sum += dailyAccrual(balance, t, d);

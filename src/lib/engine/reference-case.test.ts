@@ -239,11 +239,12 @@ describe('reference case', () => {
       '2027-03-31',
       '2027-04-30',
     ]);
-    // Independent check: 2,5 % / 365 on each day's closing balance, summed per month.
+    // Independent check: 2,5 % / 365 on each day's closing balance, summed per month, from the
+    // day the account opens (a pay day, with nothing paid on it).
     let month = START.slice(0, 7);
     let sum = 0;
     const expected: number[] = [];
-    for (const d of daysAfter(START, END)) {
+    for (const d of [START, ...daysAfter(START, END)]) {
       if (d.slice(0, 7) !== month) month = d.slice(0, 7);
       const closing = fold(
         ledger.filter((m) => !(m.kind === 'interes' && m.accountId === 'brk' && m.day === d)),

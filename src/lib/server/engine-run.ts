@@ -270,8 +270,8 @@ function latest(list: { day: Day; priceE8: bigint }[] | undefined, day: Day) {
 
 // Everything the engine needs about one user, from two reads. `from` is where the run starts.
 // The ledger comes whole, or (`compact`, when nothing was changed by hand since the last run)
-// compacted: each account's cash as one opening at the window start (the last interest payment
-// or the month start, whichever is earlier), the window's movements (units stripped up to
+// compacted: each account's cash as one opening at the window start (the eve of the last
+// interest payment or of the month start, whichever is earlier), the window's movements (units stripped up to
 // `from`), the holdings of the cache as stand-ins on `from`, and estimates whole (their value is
 // their contributions). The same results from a few hundred rows instead of years.
 export async function loadUser(tx: Db, userId: string, setup: Setup, from: Day, compact: boolean) {
@@ -321,7 +321,8 @@ export async function loadUser(tx: Db, userId: string, setup: Setup, from: Day, 
     for (const t of Object.values(interest)) {
       let d = from;
       for (let k = 0; k < 366 && !isPayDay(t, d); k++) d = addDays(d, -1);
-      if (d < start) start = d;
+      // The day before: the pay day's own movements (its payment) must be seen as such.
+      if (addDays(d, -1) < start) start = addDays(d, -1);
     }
   }
   // Only the closes a run can use: shortcut: a buy still provisional before `since` is not

@@ -164,15 +164,16 @@ describe('advance', () => {
       '2026-11-30',
     );
     const paid = (ms: Movement[]) => ms.find((m) => m.kind === 'interes')!;
-    // 10.000 € for 30 days at 2,5 %: 20,54 € gross, 16,64 € after 19 %.
+    // 10.000 € for 31 days (the opening day too) at 2,5 %: 21,23 € gross, 17,20 € after 19 %.
     expect(paid(still)).toMatchObject({
       day: '2026-11-30',
-      amountCents: 1_664,
-      withholdingCents: 390,
+      amountCents: 1_720,
+      withholdingCents: 403,
     });
-    // Mondays 2, 9, 16, 23 and 30 take 500 € each: 10.000 € one day, 9.500, 9.000, 8.500 and
-    // 8.000 € seven days each, 7.500 € the last: 262.500 €·day × 2,5 % / 365 = 17,979 €.
-    expect(paid(spent).amountCents + paid(spent).withholdingCents!).toBe(1_797);
+    // Mondays 2, 9, 16, 23 and 30 take 500 € each: 10.000 € two days (31 Oct and 1 Nov), 9.500,
+    // 9.000, 8.500 and 8.000 € seven days each, 7.500 € the last: 272.500 €·day × 2,5 % / 365
+    // = 18,664 €.
+    expect(paid(spent).amountCents + paid(spent).withholdingCents!).toBe(1_866);
   });
 
   it('splits a debt payment into interest (an expense) and principal (a transfer to the debt)', () => {
@@ -300,10 +301,36 @@ describe('accruedInterest', () => {
     };
     const input: EngineInput = { ...none, interest: { brk: t } };
     const ledger = [opening('brk', 1_000_000)];
-    // 15 days of 0,68493 € are 10,27 € gross: 8,32 € after 19 %.
-    expect(accruedInterest(input, ledger, '2026-11-15')).toEqual({ brk: 832 });
+    // 16 days (31 Oct, its opening, to 15 Nov) of 0,68493 € are 10,96 € gross: 8,87 € after 19 %.
+    expect(accruedInterest(input, ledger, '2026-11-15')).toEqual({ brk: 887 });
     const paid = [...ledger, ...advance(input, ledger, '2026-10-31', '2026-11-30')];
     expect(accruedInterest(input, paid, '2026-11-30')).toEqual({ brk: 0 });
+  });
+
+  it('owes the first day of an account opened on its pay day, after that day ran', async () => {
+    const { accruedInterest } = await import('./advance.ts');
+    const t: InterestTerms = {
+      tiers: [{ rateBp: 200 }],
+      baseDays: 365,
+      payFrequency: 'mensual',
+      payDay: 31,
+      withholdingBp: 1900,
+    };
+    const input: EngineInput = { ...none, interest: { brk: t } };
+    // 38.240,15 € at 2 % for a day: 2,0953 € gross, 1,69 € net.
+    const ledger = [opening('brk', 3_824_015)];
+    expect(accruedInterest(input, ledger, '2026-10-31')).toEqual({ brk: 169 });
+    // Paid with November, on the 30th: 31 days of interest, not 30.
+    const [paid] = advance(input, ledger, '2026-10-31', '2026-11-30');
+    const [nov] = advance(
+      input,
+      [opening('brk', 3_824_015, '2026-11-01')],
+      '2026-11-01',
+      '2026-11-30',
+    );
+    expect(
+      paid!.amountCents + paid!.withholdingCents! - (nov!.amountCents + nov!.withholdingCents!),
+    ).toBe(209);
   });
 });
 

@@ -29,15 +29,10 @@ test('Alta inicial: what you have, with the total as you add it, then Inicio', a
   await page.getByLabel('Saldo hoy (€)').fill('38.240,15');
   await page.getByLabel('Interés anual (%)').fill('2');
   await page.getByRole('button', { name: 'Añadir', exact: true }).click();
-  // Plus today's interest on today's closing balance: 38.240,15 × 2 % ÷ 365, 19 % withheld;
-  // on the month's last day (its pay day) the first day's interest is not counted.
-  const payDay = new Date(Date.now() + 86_400_000)
-    .toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' })
-    .endsWith('-01');
-  const cents = payDay ? '0,15' : '1,84';
-  await expect(page.getByRole('link', { name: /Bankinter/ })).toContainText(`38.24${cents} €`);
+  // Plus today's interest on today's closing balance: 38.240,15 × 2 % ÷ 365, 19 % withheld.
+  await expect(page.getByRole('link', { name: /Bankinter/ })).toContainText('38.241,84 €');
   await expect(page.getByText('Tu patrimonio, de momento').locator('..')).toContainText(
-    `38.24${cents} €`,
+    '38.241,84 €',
   );
 
   await page.getByRole('link', { name: /Hipoteca o préstamo/ }).click();
@@ -45,7 +40,7 @@ test('Alta inicial: what you have, with the total as you add it, then Inicio', a
   await page.getByLabel('Lo que debes (€)').fill('15.000');
   await page.getByRole('button', { name: 'Añadir', exact: true }).click();
   await expect(page.getByText('Tu patrimonio, de momento').locator('..')).toContainText(
-    `23.24${cents} €`,
+    '23.241,84 €',
   );
 
   // A broker: its products next, and closing comes back here.
@@ -63,5 +58,5 @@ test('Alta inicial: what you have, with the total as you add it, then Inicio', a
   await page.getByRole('link', { name: 'Siguiente: listo' }).click();
   await page.getByRole('link', { name: 'Ir a Inicio' }).click();
   await expect(page.getByText('Tu patrimonio')).toBeVisible();
-  await expect(page.getByText(`23.44${cents} €`).first()).toBeVisible();
+  await expect(page.getByText('23.441,84 €').first()).toBeVisible();
 });
