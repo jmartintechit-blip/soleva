@@ -1,6 +1,7 @@
-import type { Day } from '#lib/engine/day.ts';
+import { type Day, weekday } from '#lib/engine/day.ts';
 import type { Db } from './db/index.ts';
 import { runUser } from './engine-run.ts';
+import { refreshHousingIndex } from './housing.ts';
 import { marketstack } from './market/marketstack.ts';
 import type { MarketDeps } from './market/refresh.ts';
 import { refreshPrices, refreshRates } from './market/refresh.ts';
@@ -29,6 +30,11 @@ export async function daily(
   send: (jobs: Job[]) => Promise<unknown>,
 ) {
   const rates = await refreshRates(db, deps.fetch).catch((error) => ({ error: String(error) }));
+  // Quarterly data: asked once a week.
+  const housing =
+    weekday(today) === 1
+      ? await refreshHousingIndex(db, deps.fetch).catch((error) => ({ error: String(error) }))
+      : null;
   const prices = await refreshPrices(db, deps, today);
   const users = await db.query<{ user_id: string }>(
     `select user_id from engine_state where processed_through < $1 order by user_id`,
@@ -42,6 +48,7 @@ export async function daily(
   for (let i = 0; i < jobs.length; i += 100) await send(jobs.slice(i, i + 100));
   return {
     rates,
+    housing,
     prices: { stored: prices.stored, failed: prices.failed.length },
     users: users.length,
   };
