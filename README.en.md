@@ -15,11 +15,11 @@ You note once how your money comes in and goes out (salary, contributions, fixed
 
 > Soleva does not move money, does not connect to your bank and does not recommend products. Every projection is an estimate, not advice.
 
-<p align="center"><img src="docs/portada.png" width="280" alt="Soleva home page on mobile"></p>
+<p align="center"><img src="docs/portada.png" width="280" alt="Soleva Home on mobile, with test data"></p>
 
 ## Features
 
-Today (blocks 0 to 6, plus blocks 8 to 10 without screens):
+Today (blocks 0 to 6 and 8 to 11):
 
 - Public home page with a compound interest calculator in today's euros (3, 6 and 8 % scenarios, 2.5 % inflation).
 - Waitlist with consent and email double opt-in (open).
@@ -32,7 +32,8 @@ Today (blocks 0 to 6, plus blocks 8 to 10 without screens):
 - Month close: balances proposed from your rules, inline correction, confirmation, history with amendments and an email reminder.
 - Settings: three themes, reminder, export everything as JSON or CSV, end sessions and delete the account for real.
 - Horizonte dark design system with self-hosted fonts.
-- Ledger database (v0.8.0), daily engine (v0.9.0) and data and daily runs (v0.10.0): movements generated every day, interest on the real balance, debts, dividends, valuation, returns, alerts, stock closes, ECB rates, the official Euribor and Hacienda's car tables; no screens yet.
+- Ledger database (v0.8.0), daily engine (v0.9.0) and data and daily runs (v0.10.0): movements generated every day, interest on the real balance, debts, dividends, valuation, returns, alerts, stock closes, ECB rates, the official Euribor and Hacienda's car tables.
+- New screens on the ledger (v0.11.0): Home with what you put in against what your money made in each period, Alerts, Account with positions and movements, Add product (search with ISIN and exchanges), Reconcile against the real figures and a three-step onboarding. Current users move to them with the new rules (block 12).
 
 Coming before the beta: Soleva will keep track of your money on its own, movement by movement. You enter your situation once and every day it generates transfers, your plans' purchases, interest, payments and dividends, and values your holdings.
 
@@ -64,7 +65,7 @@ npm run dev
 
 ## Status
 
-Under construction: blocks 0 to 6 and 8 to 10 done (v0.10.0), deployed with sign-up closed and the waitlist open. Polish (block 7) moves to the end, on the new screens. See [CHANGELOG.md](CHANGELOG.md).
+Under construction: blocks 0 to 6 and 8 to 11 done (v0.11.0), deployed with sign-up closed and the waitlist open. Polish (block 7) moves to the end, on the new screens. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Roadmap
 

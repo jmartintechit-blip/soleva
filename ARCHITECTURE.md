@@ -24,7 +24,7 @@ navegador ──HTTPS──▶ Cloudflare Worker (SvelteKit)
 
 ## Decisiones clave
 
-- **Una conexión por petición.** Un Worker no puede reutilizar sockets entre peticiones, así que cada petición que necesita la base de datos abre su `Pool` de Neon y lo cierra al terminar. Las páginas públicas no abren ninguno.
+- **Una conexión por petición.** Un Worker no puede reutilizar sockets entre peticiones, así que cada petición que necesita la base de datos abre su `Pool` de Neon y lo cierra al terminar, después de lo que la página recibe en streaming (`locals.defer`, p. ej. los ISIN que llegan tras la búsqueda). Las páginas públicas no abren ninguno.
 - **Better Auth una vez por isolate.** Crearlo cuesta unos 9 ms de CPU; se reutiliza entre peticiones y sus consultas van al `Pool` de la petición en curso (AsyncLocalStorage).
 - **Sin contraseñas.** Workers Free da 10 ms de CPU por petición: un hash de contraseña no cabe. La entrada es por código de un solo uso.
 - **Límites en la base de datos.** El límite de intentos de Better Auth se guarda en Postgres porque un Worker no tiene memoria compartida entre peticiones.

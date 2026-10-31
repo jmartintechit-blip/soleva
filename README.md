@@ -15,11 +15,11 @@ Apuntas una vez cómo entra y sale tu dinero (nómina, aportaciones, gastos fijo
 
 > Soleva no mueve dinero, no se conecta a tu banco y no recomienda productos. Toda proyección es una estimación, no asesoramiento.
 
-<p align="center"><img src="docs/portada.png" width="280" alt="Portada de Soleva en móvil"></p>
+<p align="center"><img src="docs/portada.png" width="280" alt="Inicio de Soleva en móvil, con datos de prueba"></p>
 
 ## Funcionalidades
 
-Hoy (bloques 0 a 6, más los bloques 8 a 10 sin pantallas):
+Hoy (bloques 0 a 6 y 8 a 11):
 
 - Portada pública con calculadora de interés compuesto en euros de hoy (escenarios 3, 6 y 8 % e inflación 2,5 %).
 - Lista de espera con consentimiento y doble confirmación por email (abierta).
@@ -32,7 +32,8 @@ Hoy (bloques 0 a 6, más los bloques 8 a 10 sin pantallas):
 - Cierre de mes: saldos propuestos por tus reglas, corrección en línea, confirmación, histórico con enmiendas y recordatorio por email.
 - Ajustes: tres temas, recordatorio, exportar todo en JSON o CSV, cerrar sesiones y borrar la cuenta de verdad.
 - Sistema de diseño Horizonte, oscuro, con fuentes alojadas en el propio sitio.
-- Base de datos del libro de movimientos (v0.8.0), motor diario (v0.9.0) y datos y ejecución diaria (v0.10.0): movimientos generados cada día, intereses sobre el saldo real, deudas, dividendos, valoración, rentabilidad, alertas, cierres de bolsa, tipos del BCE, Euríbor oficial y tablas de Hacienda; todavía sin pantallas.
+- Base de datos del libro de movimientos (v0.8.0), motor diario (v0.9.0) y datos y ejecución diaria (v0.10.0): movimientos generados cada día, intereses sobre el saldo real, deudas, dividendos, valoración, rentabilidad, alertas, cierres de bolsa, tipos del BCE, Euríbor oficial y tablas de Hacienda.
+- Pantallas nuevas sobre el libro (v0.11.0): Inicio con lo que aportaste frente a lo que ganó tu dinero por periodo, Alertas, Cuenta con posiciones y movimientos, Añadir producto (buscador con ISIN y bolsas), Cuadre con lo real y Alta inicial en tres pasos. Los usuarios actuales pasarán a ellas con las reglas nuevas (bloque 12).
 
 En camino antes de la beta: Soleva llevará el dinero sola, movimiento a movimiento. Metes tu situación una vez y cada día genera transferencias, compras de tus planes, intereses, cuotas y dividendos, y valora tus posiciones.
 
@@ -64,7 +65,7 @@ npm run dev
 
 ## Estado
 
-En construcción: bloques 0 a 6 y 8 a 10 cerrados (v0.10.0), desplegado con el registro cerrado y la lista de espera abierta. El pulido (bloque 7) pasa al final, sobre las pantallas nuevas. Ver [CHANGELOG.md](CHANGELOG.md).
+En construcción: bloques 0 a 6 y 8 a 11 cerrados (v0.11.0), desplegado con el registro cerrado y la lista de espera abierta. El pulido (bloque 7) pasa al final, sobre las pantallas nuevas. Ver [CHANGELOG.md](CHANGELOG.md).
 
 ## Hoja de ruta
 

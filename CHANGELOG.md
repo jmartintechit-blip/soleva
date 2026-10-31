@@ -4,6 +4,26 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 
 ## [Sin publicar]
 
+## [0.11.0] - 2026-10-31
+
+### Añadido
+
+- Inicio nuevo: patrimonio con su gráfico por día, mes, 3 y 6 meses, año o todo; lo que aportaste frente a lo que ganó tu dinero (rentabilidad ponderada por dinero), la alerta principal, cada cuenta con lo que ganó y el reparto por tipo. El interés devengado y no pagado ya cuenta en el valor.
+- Navegación nueva: Inicio, Cuentas, Proyección y Reglas abajo en el móvil; en escritorio, además, Alertas con contador y Ajustes.
+- Alertas con sus cifras, su acción y «Ocultar».
+- Cuenta: posiciones con cantidad, precio, valor y ganancia; efectivo con su interés; el plan de la cuenta y sus movimientos (automáticos y de cuadre).
+- Añadir producto: buscador por nombre, ISIN o ticker con una fila por producto, su ISIN (registro FIRDS de ESMA) y la bolsa en euros primero; las participaciones y el precio medio dan el valor y la ganancia al momento. Si ya lo tienes, se suma a tu posición.
+- Cuadre: lo que Soleva cree que tienes frente a lo real; cada diferencia queda apuntada como ajuste de hoy.
+- Alta inicial en tres pasos, sin barra inferior, con el total al momento.
+- Planes de inversión sin efectivo suficiente: no se compra y se avisa, o se trae el importe desde otra cuenta. El efectivo de un bróker nunca queda en negativo.
+
+### Cambiado
+
+- Todo saldo negativo sale en rojo y con «−» en todas las pantallas.
+- La búsqueda de productos no espera al ISIN: aparece en cuanto llega y se guarda para la próxima vez.
+
+Las pantallas nuevas son para quien ya está en el libro de movimientos; los usuarios actuales pasan a ellas con las reglas nuevas (bloque 12).
+
 ## [0.10.0] - 2026-10-30
 
 ### Añadido
@@ -149,7 +169,13 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versiones:
 - Prueba E2E de entrada con Playwright, en CI sobre una rama temporal de Neon copiada de dev.
 - Primer despliegue en Cloudflare Workers.
 
-[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.5.0...HEAD
+[Sin publicar]: https://github.com/jmartintechit-blip/soleva/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.11.0
+[0.10.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.10.0
+[0.9.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.9.0
+[0.8.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.8.0
+[0.7.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.7.0
+[0.6.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.6.0
 [0.5.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.5.0
 [0.4.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.4.0
 [0.3.0]: https://github.com/jmartintechit-blip/soleva/releases/tag/v0.3.0
