@@ -1,6 +1,8 @@
 import type { Day } from '#lib/engine/day.ts';
-import { roundHalfAwayFromZero } from '#lib/engine/money.ts';
-import { PROVINCE_NAME, type PropertyKind } from '#lib/labels.ts';
+import { parseEuros, roundHalfAwayFromZero } from '#lib/engine/money.ts';
+import { propertyCents } from '#lib/engine/valuation.ts';
+import { PROPERTY_KINDS, PROVINCE_NAME, type PropertyKind } from '#lib/labels.ts';
+import { MAX_CENTS } from './accounts.ts';
 import type { Db } from './db/index.ts';
 import { normalize } from './housing.ts';
 
@@ -30,20 +32,26 @@ export async function searchMunicipalities(db: Db, q: string): Promise<Place[]> 
   return rows.map(place);
 }
 
-export interface M2 {
+export interface PlaceInfo {
   place: Place;
-  // Where the figure comes from: the municipality, or its province when it has under 25.000.
-  area: 'municipio' | 'provincia';
-  eurM2Cents: number;
-  quarter: Day;
-  // The same, brought to the region's latest quarter of the index (as is until a newer one).
-  todayEurM2Cents: number;
+  // INE's code of its community, for «el índice del INE para …».
   region: string;
+  // How much the region's index rose over the last four quarters: shown only to say it is NOT
+  // used as a forecast.
+  lastYearBp: number | null;
+  // The Ministry of Housing's average appraised value per m², of the municipality or, under
+  // 25.000 inhabitants, of its province; null when neither is known.
+  m2: {
+    area: 'municipio' | 'provincia';
+    eurM2Cents: number;
+    quarter: Day;
+    // The same, brought to the region's latest quarter of the index (as is until a newer one).
+    todayEurM2Cents: number;
+  } | null;
 }
 
-// The Ministry of Housing's average appraised value per m² of a municipality, or of its province;
-// null when neither is known.
-export async function m2Of(db: Db, code: string): Promise<M2 | null> {
+// Null when there is no such municipality.
+export async function placeOf(db: Db, code: string): Promise<PlaceInfo | null> {
   const [r] = await db.query<{
     code: string;
     name: string;
@@ -53,6 +61,7 @@ export async function m2Of(db: Db, code: string): Promise<M2 | null> {
     cents: number | null;
     now: number | null;
     then: number | null;
+    ago: number | null;
   }>(
     `with m as (
        select m.code, m.name, m.region,
@@ -66,18 +75,28 @@ export async function m2Of(db: Db, code: string): Promise<M2 | null> {
             (select index_e3 from housing_index where region = m.idx
              order by quarter desc limit 1) as now,
             (select index_e3 from housing_index where region = m.idx and quarter <= v.quarter
-             order by quarter desc limit 1) as then
+             order by quarter desc limit 1) as then,
+            (select h.index_e3 from housing_index h where h.region = m.idx
+               and h.quarter = (select max(quarter) from housing_index where region = m.idx)
+                               - interval '1 year') as ago
      from m left join v on true`,
     [code],
   );
-  if (!r?.area || !r.cents || !r.quarter) return null;
+  if (!r) return null;
   return {
     place: place(r),
-    area: r.area.length === 5 ? 'municipio' : 'provincia',
-    eurM2Cents: r.cents,
-    quarter: r.quarter,
-    todayEurM2Cents: r.now && r.then ? roundHalfAwayFromZero((r.cents * r.now) / r.then) : r.cents,
     region: r.region,
+    lastYearBp: r.now && r.ago ? Math.round((r.now / r.ago - 1) * 10_000) : null,
+    m2:
+      r.area && r.cents && r.quarter
+        ? {
+            area: r.area.length === 5 ? 'municipio' : 'provincia',
+            eurM2Cents: r.cents,
+            quarter: r.quarter,
+            todayEurM2Cents:
+              r.now && r.then ? roundHalfAwayFromZero((r.cents * r.now) / r.then) : r.cents,
+          }
+        : null,
   };
 }
 
@@ -95,6 +114,8 @@ export interface PropertyInput {
   mortgageAccountId?: string;
 }
 
+const isRefused = (error: unknown) => (error as { code?: string }).code === 'P0001';
+
 // Opens the property with its value: m² × the Ministry's €/m², which refers to the Ministry's
 // quarter (the index moves it from there), or the user's own, from today. 'sin_dato' without a
 // figure for the municipality or its province; null when the mortgage is not a debt the user
@@ -108,7 +129,7 @@ export async function createProperty(
   let cents = p.ownCents ?? 0;
   let valueOn = day;
   if (p.method === 'm2') {
-    const m2 = await m2Of(db, p.municipalityCode);
+    const m2 = (await placeOf(db, p.municipalityCode))?.m2;
     if (!m2) return 'sin_dato';
     cents = roundHalfAwayFromZero(p.areaM2 * m2.eurM2Cents);
     valueOn = m2.quarter;
@@ -145,7 +166,253 @@ export async function createProperty(
       return id!;
     });
   } catch (error) {
-    if ((error as { code?: string }).code === 'P0001') return null;
+    if (isRefused(error)) return null;
     throw error;
   }
+}
+
+// The user's debts, to link one as the mortgage, with what is owed today (negative).
+export async function debtsOf(db: Db, userId: string) {
+  return db.query<{ id: string; name: string; cents: number }>(
+    `select a.id, a.name,
+            coalesce(sum(m.amount_cents) filter (where m.voided_at is null), 0)::float8 as cents
+     from money_account a
+     join account_access x on x.account_id = a.id and x.user_id = $1
+       and x.role in ('propietario', 'editor')
+     left join movement m on m.account_id = a.id
+     where a.kind in ('deuda_hipoteca', 'deuda_prestamo') and a.archived_at is null
+     group by a.id, a.name, a.created_at order by a.created_at, a.id`,
+    [userId],
+  );
+}
+
+export interface PropertyView {
+  id: string;
+  name: string;
+  kind: PropertyKind;
+  areaM2: number;
+  purchaseYear: number | null;
+  purchaseCents: number | null;
+  method: 'm2' | 'propio';
+  growthBp: number;
+  mortgageAccountId: string | null;
+  valueCents: number;
+  info: PlaceInfo;
+  canEdit: boolean;
+}
+
+// What it is worth on `day`, from its own movements and its region's index (as the engine).
+async function valueOf(db: Db, id: string, valueOn: Day, region: string, day: Day) {
+  const flows = await db.query<{ day: Day; cents: number; kind: string }>(
+    `select day::text as day, amount_cents::float8 as cents, kind from movement
+     where account_id = $1 and voided_at is null order by day, seq`,
+    [id],
+  );
+  const index = await db.query<{ quarter: Day; indexE3: number }>(
+    `select quarter::text as quarter, index_e3 as "indexE3" from housing_index
+     where region = coalesce((select region from housing_index where region = $1 limit 1), '00')
+     order by quarter`,
+    [region],
+  );
+  return propertyCents(
+    flows.map((f) => ({ ...f, from: f.kind === 'apertura' ? valueOn : undefined })),
+    index,
+    day,
+  );
+}
+
+// The property behind an account the user can see; null otherwise (404).
+export async function propertyView(
+  db: Db,
+  userId: string,
+  id: string,
+  day: Day,
+): Promise<PropertyView | null> {
+  const [r] = await db.query<{
+    name: string;
+    kind: PropertyKind;
+    code: string;
+    area: number;
+    year: number | null;
+    purchase: number | null;
+    method: 'm2' | 'propio';
+    valueOn: Day;
+    growth: number;
+    mortgage: string | null;
+    role: string;
+  }>(
+    `select a.name, p.kind, p.municipality_code as code, p.area_m2 as area, p.purchase_year as year,
+            p.purchase_cents::float8 as purchase, p.value_method as method,
+            p.value_on::text as "valueOn", p.growth_bp as growth,
+            p.mortgage_account_id as mortgage, x.role
+     from property p join money_account a on a.id = p.account_id
+     join account_access x on x.account_id = a.id and x.user_id = $1
+     where p.account_id = $2`,
+    [userId, id],
+  );
+  if (!r) return null;
+  const info = (await placeOf(db, r.code))!;
+  return {
+    id,
+    name: r.name,
+    kind: r.kind,
+    areaM2: r.area,
+    purchaseYear: r.year,
+    purchaseCents: r.purchase,
+    method: r.method,
+    growthBp: r.growth,
+    mortgageAccountId: r.mortgage,
+    valueCents: await valueOf(db, id, r.valueOn, info.region, day),
+    info,
+    canEdit: r.role === 'propietario' || r.role === 'editor',
+  };
+}
+
+// Changes what the user changed. A new value (their own, or the m² one after changing the m²
+// or the method) goes in as an 'ajuste' of today: it wins from today and the index moves it from
+// there. Null without the right to change it, or with a mortgage that is not theirs.
+export async function updateProperty(
+  db: Db,
+  userId: string,
+  id: string,
+  day: Day,
+  p: PropertyInput,
+): Promise<true | 'sin_dato' | null> {
+  const before = await propertyView(db, userId, id, day);
+  if (!before?.canEdit) return null;
+  let target: number | null = null;
+  if (p.method === 'propio' && p.ownCents !== undefined && p.ownCents !== before.valueCents)
+    target = p.ownCents;
+  if (
+    p.method === 'm2' &&
+    (before.method !== 'm2' ||
+      p.areaM2 !== before.areaM2 ||
+      p.municipalityCode !== before.info.place.code)
+  ) {
+    const m2 = (await placeOf(db, p.municipalityCode))?.m2;
+    if (!m2) return 'sin_dato';
+    target = roundHalfAwayFromZero(p.areaM2 * m2.todayEurM2Cents);
+  }
+  try {
+    return await db.transaction(async (tx) => {
+      await tx.query(`update money_account set name = $2 where id = $1`, [id, p.name]);
+      await tx.query(
+        `update property set kind = $2, municipality_code = $3, area_m2 = $4, purchase_year = $5,
+           purchase_cents = $6, value_method = $7, growth_bp = $8, mortgage_account_id = $9
+         where account_id = $1`,
+        [
+          id,
+          p.kind,
+          p.municipalityCode,
+          p.areaM2,
+          p.purchaseYear ?? null,
+          p.purchaseCents ?? null,
+          p.method,
+          p.growthBp,
+          p.mortgageAccountId ?? null,
+        ],
+      );
+      if (target !== null && target !== before.valueCents)
+        await tx.query(
+          `insert into movement (account_id, day, kind, amount_cents, source)
+           values ($1, $2, 'ajuste', $3, 'manual')`,
+          [id, day, target - before.valueCents],
+        );
+      return true as const;
+    });
+  } catch (error) {
+    if (isRefused(error)) return null;
+    throw error;
+  }
+}
+
+export const GROWTH_BP = [0, 100, 200, 300, 400, 500];
+const PROPERTY_KINDS_SET = new Set<string>(PROPERTY_KINDS.map((k) => k.kind));
+const FIELDS = [
+  'name',
+  'kind',
+  'municipio',
+  'codigo',
+  'm2',
+  'ano',
+  'precio',
+  'metodo',
+  'valor',
+  'crecimiento',
+  'hipoteca',
+  'hipoteca_id',
+  'hipoteca_debe',
+] as const;
+export type PropertyValues = Record<(typeof FIELDS)[number], string>;
+
+// RInmueble's form, checked. The municipality is the one picked from the list or, without
+// JavaScript, the one whose name is exactly what was typed; otherwise the candidates to pick.
+// The mortgage: none, one of the user's debts, or 'nueva' with what is owed.
+export async function readPropertyForm(db: Db, form: FormData, thisYear: number) {
+  const values = Object.fromEntries(
+    FIELDS.map((k) => [k, String(form.get(k) ?? '').trim()]),
+  ) as PropertyValues;
+  const errors: Partial<Record<(typeof FIELDS)[number] | 'form', string>> = {};
+  let candidates: Place[] = [];
+  let info = /^\d{5}$/.test(values.codigo) ? await placeOf(db, values.codigo) : null;
+  if (!info) {
+    // «Écija (Sevilla)», as the box shows it once picked, is Écija.
+    const typed = values.municipio.replace(/\s*\([^)]*\)$/, '');
+    candidates = await searchMunicipalities(db, typed);
+    const exact = candidates.filter((c) => normalize(c.name) === normalize(typed));
+    if (exact.length === 1) info = await placeOf(db, exact[0]!.code);
+    else
+      errors.municipio = values.municipio
+        ? 'Elige tu municipio de la lista'
+        : 'Escribe el municipio';
+  }
+  if (info) candidates = [];
+  const kind = PROPERTY_KINDS_SET.has(values.kind) ? (values.kind as PropertyKind) : null;
+  const area = /^\d{1,6}$/.test(values.m2) ? Number(values.m2) : null;
+  const year = values.ano ? Number(values.ano) : undefined;
+  const price = values.precio ? parseEuros(values.precio) : undefined;
+  const own = values.valor ? parseEuros(values.valor) : undefined;
+  const growth = Number(values.crecimiento || 200);
+  const method = values.metodo === 'propio' ? 'propio' : 'm2';
+  if (!values.name || values.name.length > 60) errors.name = 'Ponle un nombre (hasta 60 letras)';
+  if (!kind) errors.kind = 'Elige qué es';
+  if (!area || area > 100_000) errors.m2 = 'Escribe los m², por ejemplo 90';
+  if (year !== undefined && !(Number.isInteger(year) && year >= 1900 && year <= thisYear))
+    errors.ano = 'Escribe el año, por ejemplo 2018';
+  if (price === null || (price !== undefined && (price <= 0 || price > MAX_CENTS)))
+    errors.precio = 'Escribe el precio, por ejemplo 98.000';
+  if (method === 'propio' && (own === undefined || own === null || own <= 0 || own > MAX_CENTS))
+    errors.valor = 'Escribe lo que vale, por ejemplo 115.000';
+  if (method === 'm2' && info && !info.m2)
+    errors.valor = `No hay valor oficial para ${info.place.name} ni su provincia: pon tu valor`;
+  if (!GROWTH_BP.includes(growth)) errors.crecimiento = 'Elige cuánto sube al año';
+  let mortgage: { id?: string; newCents?: number } | null = null;
+  if (values.hipoteca) {
+    if (values.hipoteca_id && values.hipoteca_id !== 'nueva') mortgage = { id: values.hipoteca_id };
+    else {
+      const owed = parseEuros(values.hipoteca_debe);
+      if (owed === null || owed <= 0 || owed > MAX_CENTS)
+        errors.hipoteca_debe = 'Escribe lo que debes, por ejemplo 62.400';
+      else mortgage = { newCents: owed };
+    }
+  }
+  if (Object.keys(errors).length) return { ok: false as const, values, errors, candidates, info };
+  return {
+    ok: true as const,
+    values,
+    info: info!,
+    mortgage,
+    input: {
+      name: values.name,
+      kind: kind!,
+      municipalityCode: info!.place.code,
+      areaM2: area!,
+      purchaseYear: year,
+      purchaseCents: price ?? undefined,
+      method,
+      ownCents: own ?? undefined,
+      growthBp: growth,
+      mortgageAccountId: mortgage?.id,
+    } satisfies PropertyInput,
+  };
 }

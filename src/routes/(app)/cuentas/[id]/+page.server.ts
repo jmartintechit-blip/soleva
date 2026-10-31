@@ -26,6 +26,11 @@ export const load: PageServerLoad = async (event) => {
   if (ledger) {
     const view = await loadAccountView(db, userId, event.params.id, today());
     if (!view) error(404, 'No encontrada');
+    // A home has its own page (b12/RInmueble).
+    const [home] = await db.query(`select 1 from property where account_id = $1`, [
+      view.account.id,
+    ]);
+    if (home) redirect(303, `/cuentas/${view.account.id}/inmueble`);
     return { view, account: null };
   }
   const account = await getAccount(db, userId, event.params.id);

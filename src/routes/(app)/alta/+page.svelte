@@ -17,6 +17,7 @@
     vehiculo: 'M5 16l1.5-5h11l1.5 5M4 16h16v3H4zM7 19v1.5M17 19v1.5',
     bien: 'M4 5h16v11H4zM9 20h6M12 16v4',
     deuda_hipoteca: 'M4 11l8-6 8 6M6 10v9h12v-9M10 19v-5h4v5',
+    inmueble: 'M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-5h-6v5H5a1 1 0 0 1-1-1z',
   };
   const eur = (cents: number) => formatEuros(cents, { withCents: true });
   const meta = (a: (typeof data.accounts)[number]) =>
@@ -79,7 +80,15 @@
         {@const open = data.open === k.kind}
         {@const back = value(k.kind)}
         <div class="kind">
-          <a class="row" href={open ? '?' : `?tipo=${k.kind}`} aria-expanded={open}>
+          <a
+            class="row"
+            href={k.kind === 'inmueble'
+              ? '/cuentas/nueva/inmueble?volver=alta'
+              : open
+                ? '?'
+                : `?tipo=${k.kind}`}
+            aria-expanded={k.kind === 'inmueble' ? undefined : open}
+          >
             <svg
               width="20"
               height="20"

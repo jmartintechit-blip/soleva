@@ -81,6 +81,13 @@ export const ALTA_KINDS = [
   { kind: 'cripto', label: 'Cripto', hint: 'precio automático', amount: 'Efectivo en la cuenta' },
   { kind: 'vehiculo', label: 'Coche o moto', hint: 'lo que vale hoy', amount: 'Valor hoy' },
   { kind: 'bien', label: 'Otro bien', hint: 'PC, joyas, reloj…', amount: 'Valor hoy' },
+  // Its own screen (b12/RInmueble), not a line here.
+  {
+    kind: 'inmueble',
+    label: 'Vivienda o inmueble',
+    hint: 'por m² de tu zona',
+    amount: 'Valor hoy',
+  },
   {
     kind: 'deuda_hipoteca',
     label: 'Hipoteca o préstamo',
