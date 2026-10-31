@@ -191,6 +191,11 @@
           >Añadir producto</a
         >
         <a class="sv-btn sv-btn--ghost sv-btn--sm" href="/cuentas/{v.account.id}/cuadre">Cuadrar</a>
+        {#if v.account.kind === 'remunerada'}
+          <a class="sv-btn sv-btn--ghost sv-btn--sm" href="/cuentas/{v.account.id}/intereses"
+            >Intereses</a
+          >
+        {/if}
       </div>
     </header>
 
@@ -213,6 +218,11 @@
           >Añadir producto</a
         >
         <a class="sv-btn sv-btn--ghost sv-btn--sm" href="/cuentas/{v.account.id}/cuadre">Cuadrar</a>
+        {#if v.account.kind === 'remunerada'}
+          <a class="sv-btn sv-btn--ghost sv-btn--sm" href="/cuentas/{v.account.id}/intereses"
+            >Intereses</a
+          >
+        {/if}
       </div>
 
       {#each v.plans as p (p.id)}

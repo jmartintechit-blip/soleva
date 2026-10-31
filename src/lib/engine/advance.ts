@@ -282,9 +282,10 @@ export function accruedInterest(input: EngineInput, ledger: readonly Movement[],
   );
 }
 
-// Interest accrued and not yet paid when a run starts: replayed from the last pay day (at most a
-// year back) on the ledger's own closing balances, so no state has to be stored for it.
-function interestSince(input: EngineInput, ledger: Movement[], from: Day) {
+// Interest accrued and not yet paid at the end of `from`, in millionths of a cent: replayed from
+// the last pay day (at most a year back) on the ledger's own closing balances, so no state has
+// to be stored for it. RRemunerada shows it as is.
+export function interestSince(input: EngineInput, ledger: Movement[], from: Day) {
   const accrued: Record<string, bigint> = {};
   for (const [id, t] of Object.entries(input.interest)) {
     let start = from;
