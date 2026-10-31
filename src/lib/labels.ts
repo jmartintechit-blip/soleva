@@ -76,6 +76,7 @@ export const ALTA_KINDS = [
     label: 'Bróker o inversiones',
     hint: 'ETF, fondos, acciones',
     amount: 'Efectivo en la cuenta',
+    placeholder: 'Nombre, p. ej. Trade Republic',
   },
   { kind: 'cripto', label: 'Cripto', hint: 'precio automático', amount: 'Efectivo en la cuenta' },
   { kind: 'vehiculo', label: 'Coche o moto', hint: 'lo que vale hoy', amount: 'Valor hoy' },

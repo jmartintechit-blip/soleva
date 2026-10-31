@@ -107,12 +107,12 @@
           {#if open}
             <form method="POST" action="?/anadir" use:enhance class="fields">
               <input type="hidden" name="kind" value={k.kind} />
-              <label
+              <label class="wide"
                 >Nombre<input
                   name="name"
                   maxlength="60"
                   autocomplete="off"
-                  placeholder={k.label}
+                  placeholder={'placeholder' in k ? k.placeholder : k.label}
                   value={back?.name ?? ''}
                   aria-invalid={!!form?.errors?.name}
                 /></label

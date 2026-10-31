@@ -52,6 +52,10 @@
     },
   ];
   const current = (href: string) => (page.url.pathname.startsWith(href) ? 'page' : undefined);
+  // The Alta inicial (b11/NAlta) and its product sheet go without the bottom bar.
+  const focused = $derived(
+    page.url.pathname === '/alta' || page.url.searchParams.get('volver') === 'alta',
+  );
 </script>
 
 {#snippet icon(d: string, size: number)}
@@ -113,18 +117,20 @@
     </form>
   </aside>
 
-  <main>
+  <main class:focused>
     <div class="sv-glow" aria-hidden="true"></div>
     <div class="content">{@render children()}</div>
   </main>
 
-  <nav class="sv-tabbar" aria-label="Navegación principal">
-    {#each nav.filter((item) => item.mobile) as item (item.href)}
-      <a class="sv-tabbar__item tab" href={item.href} aria-current={current(item.href)}>
-        {@render icon(item.icon, 22)}<span>{item.label}</span>
-      </a>
-    {/each}
-  </nav>
+  {#if !focused}
+    <nav class="sv-tabbar" aria-label="Navegación principal">
+      {#each nav.filter((item) => item.mobile) as item (item.href)}
+        <a class="sv-tabbar__item tab" href={item.href} aria-current={current(item.href)}>
+          {@render icon(item.icon, 22)}<span>{item.label}</span>
+        </a>
+      {/each}
+    </nav>
+  {/if}
 </div>
 
 <style>
@@ -140,6 +146,11 @@
     min-width: 0;
     /* The bottom bar (48 px items + 12 px padding + its line) and the phone's home indicator. */
     padding: var(--space-5) var(--space-5) calc(96px + env(safe-area-inset-bottom));
+  }
+  @media (max-width: 1023.98px) {
+    main.focused {
+      padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom));
+    }
   }
   /* As in escritorio-proyeccion: content up to 1160 px, centred in what the sidebar leaves. */
   .content {
