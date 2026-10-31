@@ -106,9 +106,11 @@
         text: `Entran ${eur(context.monthlyIn)} al mes: sobran ${eur(-diff)}, que se quedan como efectivo.`,
       };
     const months = Math.max(0, Math.floor(context.account.cash / diff));
-    const when = new Date(`${t0.slice(0, 7)}-01T00:00:00Z`);
-    when.setUTCMonth(when.getUTCMonth() + months);
-    const month = when.toLocaleDateString('es-ES', { month: 'long', timeZone: 'UTC' });
+    const at = Number(t0.slice(0, 4)) * 12 + Number(t0.slice(5, 7)) - 1 + months;
+    const month = new Date(Date.UTC(Math.floor(at / 12), at % 12, 1)).toLocaleDateString('es-ES', {
+      month: 'long',
+      timeZone: 'UTC',
+    });
     const then =
       shortfall === 'otra_cuenta'
         ? `lo que falte saldrá de ${otherName || 'la otra cuenta'}.`

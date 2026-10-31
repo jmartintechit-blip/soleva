@@ -16,8 +16,8 @@ test('RPlan: products and amounts, the monthly average against what comes in', a
   await signIn(page);
   const [{ id }] = await sql()`select id from "user" where email = ${EMAIL}`;
   const db = createNeonDb(process.env.DATABASE_URL!);
-  let broker = '';
-  let plan = '';
+  let broker: string;
+  let plan: string;
   try {
     await migrateUserToLedger(db, id, today());
     const bank = await openAccount(db, id, today(), {
